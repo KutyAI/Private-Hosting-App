@@ -23,44 +23,64 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-      <div className="p-6 border-b border-gray-700">
-        <h1 className="text-xl font-bold text-emerald-400">MC Hosting</h1>
-        <p className="text-xs text-gray-400 mt-1">Server Manager</p>
+    <aside className="fixed left-6 top-6 bottom-6 w-20 bg-gray-900/50 border border-white/10 backdrop-blur-2xl rounded-[32px] flex flex-col justify-between items-center py-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-40 hover:border-emerald-500/20 transition-all duration-300">
+      {/* Premium Sci-Fi Glowing Header/Logo */}
+      <div className="flex flex-col items-center gap-1 group">
+        <div className="w-11 h-11 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-2xl flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all duration-300">
+          <span className="text-white font-extrabold text-base tracking-wider font-sans select-none">MC</span>
+        </div>
+        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse mt-2" />
       </div>
-      <nav className="flex-1 p-4 space-y-1">
+
+      {/* Dock Items */}
+      <nav className="flex flex-col gap-4">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
+              `relative group flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 border ${
                 isActive
-                  ? 'bg-emerald-600/20 text-emerald-400'
-                  : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                  ? 'bg-emerald-600/20 border-emerald-400 text-emerald-400 scale-105 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                  : 'bg-gray-800/20 border-gray-800/40 text-gray-400 hover:bg-emerald-600/10 hover:border-emerald-500/50 hover:text-white hover:scale-110'
               }`
             }
           >
-            <item.icon className="w-5 h-5" />
-            {item.label}
+            <item.icon className="w-5.5 h-5.5" />
+            
+            {/* Sci-Fi Premium Tooltip */}
+            <span className="absolute left-20 px-3 py-1.5 rounded-xl bg-gray-950/90 border border-white/10 text-xs font-semibold text-gray-200 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-x-2 group-hover:translate-x-0 shadow-2xl backdrop-blur-md whitespace-nowrap z-50">
+              {item.label}
+            </span>
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 border-t border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-sm font-medium">{user?.display_name || 'User'}</div>
-            <div className="text-xs text-gray-500 truncate max-w-[140px]">{user?.email}</div>
+
+      {/* Bottom Profile / Exit actions */}
+      <div className="flex flex-col gap-4 items-center">
+        {/* User profile initials preview card */}
+        <div className="relative group cursor-pointer">
+          <div className="w-10 h-10 rounded-full bg-gray-800/80 border border-gray-700/60 flex items-center justify-center hover:border-emerald-500/40 transition-colors">
+            <span className="text-xs font-bold text-gray-300">
+              {user?.display_name ? user.display_name.substring(0, 2).toUpperCase() : 'US'}
+            </span>
           </div>
+          <span className="absolute left-20 bottom-1 px-3 py-1.5 rounded-xl bg-gray-950/90 border border-white/10 text-xs font-semibold text-gray-200 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-x-2 group-hover:translate-x-0 shadow-2xl backdrop-blur-md whitespace-nowrap z-50">
+            <div className="font-bold text-emerald-400">{user?.display_name || 'User'}</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{user?.email}</div>
+          </span>
         </div>
+
+        {/* Sign Out Button */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
+          className="relative group flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-800/10 border border-gray-800/30 text-rose-500 hover:bg-rose-600/10 hover:border-rose-500/50 hover:scale-110 transition-all duration-300"
         >
-          <LogOut className="w-4 h-4" />
-          Sign Out
+          <LogOut className="w-5 h-5" />
+          <span className="absolute left-20 px-3 py-1.5 rounded-xl bg-gray-950/90 border border-rose-500/20 text-xs font-semibold text-rose-400 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-x-2 group-hover:translate-x-0 shadow-2xl backdrop-blur-md whitespace-nowrap z-50">
+            Oturumu Kapat
+          </span>
         </button>
-        <div className="text-xs text-gray-600 mt-2">v0.1.0</div>
       </div>
     </aside>
   );
