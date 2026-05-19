@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus } from 'lucide-react';
+import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus, Sparkles, Zap } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { connectIPC, sendIPCCommand, setConnectionStateHandler, disconnectIPC } from '../../services/ipcClient';
 import type { LocalServer, ServerMetrics, LogEntry } from '@mc-host/shared-types';
@@ -293,7 +293,7 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold mb-4">Create Server</h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Name</label>
             <input
@@ -303,18 +303,41 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
               placeholder="My Server"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Type</label>
-              <select
-                value={form.server_type}
-                onChange={(e) => setForm({ ...form, server_type: e.target.value as any })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Server Engine (Sunucu Motoru)</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, server_type: 'vanilla' })}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                  form.server_type === 'vanilla'
+                    ? 'bg-emerald-600/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/10'
+                    : 'bg-gray-800/40 border-gray-700 hover:border-gray-650 text-gray-400 hover:text-gray-300'
+                }`}
               >
-                <option value="vanilla">Vanilla</option>
-                <option value="paper">Paper</option>
-              </select>
+                <Sparkles className={`w-5 h-5 mb-1.5 ${form.server_type === 'vanilla' ? 'text-emerald-400' : 'text-gray-500'}`} />
+                <span className="text-xs font-bold block">Vanilla</span>
+                <span className="text-[10px] mt-1 leading-tight text-gray-500">Orijinal Minecraft motoru. Modsuz deneyim.</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, server_type: 'paper' })}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                  form.server_type === 'paper'
+                    ? 'bg-emerald-600/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/10'
+                    : 'bg-gray-800/40 border-gray-700 hover:border-gray-650 text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <Zap className={`w-5 h-5 mb-1.5 ${form.server_type === 'paper' ? 'text-emerald-400' : 'text-gray-500'}`} />
+                <span className="text-xs font-bold block">PaperMC</span>
+                <span className="text-[10px] mt-1 leading-tight text-gray-500">Yüksek performans, TPS optimizasyonu ve eklenti desteği.</span>
+              </button>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Version</label>
               <input
@@ -323,7 +346,17 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
               />
             </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Port</label>
+              <input
+                type="number"
+                value={form.port}
+                onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+              />
+            </div>
           </div>
+          
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Min RAM (MB)</label>
@@ -343,15 +376,6 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Port</label>
-            <input
-              type="number"
-              value={form.port}
-              onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) })}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-            />
           </div>
         </div>
         <div className="flex gap-3 mt-6">
