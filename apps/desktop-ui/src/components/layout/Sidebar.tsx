@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Terminal, Settings, Users, Database, Activity, LogOut } from 'lucide-react';
+import { LayoutDashboard, Terminal, Settings, Users, Database, Activity, LogOut, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/access', icon: Users, label: 'Access' },
   { to: '/backups', icon: Database, label: 'Backups' },
   { to: '/diagnostics', icon: Activity, label: 'Diagnostics' },
+  { to: '/guides', icon: BookOpen, label: 'Kılavuzlar' },
 ];
 
 export function Sidebar() {

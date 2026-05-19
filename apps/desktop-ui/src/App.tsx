@@ -8,6 +8,7 @@ import { Access } from './components/access/Access';
 import { Backups } from './components/backups/Backups';
 import { Onboarding } from './components/onboarding/Onboarding';
 import { Diagnostics } from './components/diagnostics/Diagnostics';
+import { Guides } from './components/guides/Guides';
 import { useAuthStore } from './stores/authStore';
 import { useAppStore } from './stores/appStore';
 
@@ -46,6 +47,7 @@ function App() {
           <Route path="/access" element={<Access />} />
           <Route path="/backups" element={<Backups />} />
           <Route path="/diagnostics" element={<Diagnostics />} />
+          <Route path="/guides" element={<Guides />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

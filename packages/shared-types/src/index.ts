@@ -119,6 +119,7 @@ export type IPCCommand =
   | 'backup.schedule.remove'
   | 'network.status'
   | 'network.invite.create'
+  | 'system.environment.check'
   | 'network.policy.update'
   | 'network.diagnostics'
   | 'network.test.connectivity'

@@ -289,6 +289,116 @@ export class IPCServer {
           };
         }
 
+        case 'system.environment.check': {
+          const fs = require('fs');
+          const path = require('path');
+          const { execSync } = require('child_process');
+          
+          let javaInstalled = false;
+          let javaVersion: string | null = null;
+          let javaPath: string | null = null;
+          
+          try {
+            const found = await this.serverManager['findJava']();
+            if (found) {
+              javaPath = found;
+              javaInstalled = true;
+              try {
+                const versionOutput = execSync(`"${found}" -version`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+                const combinedOutput = versionOutput.toString();
+                const match = combinedOutput.match(/version "([^"]+)"/) || combinedOutput.match(/openjdk version "([^"]+)"/);
+                if (match) {
+                  javaVersion = match[1];
+                } else {
+                  javaVersion = 'Installed (Version Unknown)';
+                }
+              } catch (e: any) {
+                const errStr = e.stderr?.toString() || e.message || '';
+                const match = errStr.match(/version "([^"]+)"/) || errStr.match(/openjdk version "([^"]+)"/) || errStr.match(/java version "([^"]+)"/);
+                if (match) {
+                  javaVersion = match[1];
+                } else {
+                  javaVersion = 'Installed';
+                }
+              }
+            }
+          } catch {}
+
+          let cloudflareInstalled = false;
+          let cloudflareVersion: string | null = null;
+          try {
+            const cfOutput = execSync('cloudflared --version', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+            if (cfOutput) {
+              cloudflareInstalled = true;
+              const match = cfOutput.match(/cloudflared version ([^\s,]+)/);
+              cloudflareVersion = match ? match[1] : 'Installed';
+            }
+          } catch (e: any) {
+            const errStr = e.stdout?.toString() || e.message || '';
+            const match = errStr.match(/cloudflared version ([^\s,]+)/);
+            if (match) {
+              cloudflareInstalled = true;
+              cloudflareVersion = match[1];
+            }
+          }
+
+          const appData = process.env.APPDATA || path.join(process.env.USERPROFILE || 'C:\\Users\\Default', 'AppData', 'Roaming');
+          const userProfile = process.env.USERPROFILE || 'C:\\Users\\Default';
+          
+          const mcPath = path.join(appData, '.minecraft');
+          const tlauncherPath = path.join(appData, 'tlauncher');
+          const legacyLauncherPath = path.join(appData, 'Legacy-Launcher');
+          const tlauncherUserPath = path.join(userProfile, '.tlauncher');
+
+          const officialMinecraftInstalled = fs.existsSync(mcPath) && !fs.existsSync(tlauncherUserPath);
+          const tlauncherInstalled = fs.existsSync(tlauncherUserPath) || fs.existsSync(tlauncherPath);
+          const legacyLauncherInstalled = fs.existsSync(legacyLauncherPath);
+
+          const mcVersions: string[] = [];
+          const versionsDir = path.join(mcPath, 'versions');
+          if (fs.existsSync(versionsDir)) {
+            try {
+              const dirs = fs.readdirSync(versionsDir);
+              for (const dir of dirs) {
+                if (fs.statSync(path.join(versionsDir, dir)).isDirectory()) {
+                  mcVersions.push(dir);
+                }
+              }
+            } catch {}
+          }
+
+          return {
+            id: request.id,
+            success: true,
+            data: {
+              java: {
+                installed: javaInstalled,
+                version: javaVersion,
+                path: javaPath
+              },
+              cloudflare: {
+                installed: cloudflareInstalled,
+                version: cloudflareVersion
+              },
+              minecraft: {
+                official: {
+                  installed: officialMinecraftInstalled,
+                  path: officialMinecraftInstalled ? mcPath : null
+                },
+                tlauncher: {
+                  installed: tlauncherInstalled,
+                  path: tlauncherInstalled ? (fs.existsSync(tlauncherUserPath) ? tlauncherUserPath : tlauncherPath) : null
+                },
+                legacy: {
+                  installed: legacyLauncherInstalled,
+                  path: legacyLauncherInstalled ? legacyLauncherPath : null
+                },
+                versions: mcVersions.slice(0, 15)
+              }
+            }
+          };
+        }
+
         case 'network.invite.create': {
           return {
             id: request.id,
