@@ -112,9 +112,10 @@ ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE relay_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own profile
-CREATE POLICY "users_read_own" ON users
-  FOR SELECT USING (auth.uid() = id);
+-- Users can read all profiles to search by email and display friends
+CREATE POLICY "users_read_all" ON users
+  FOR SELECT USING (auth.role() = 'authenticated');
+
 
 -- Devices are readable by authenticated users (for presence)
 CREATE POLICY "devices_read_all" ON devices
@@ -154,6 +155,9 @@ CREATE POLICY "friendships_update" ON friendships
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
+  -- Cleanup any orphaned profile with the same email (if a test user was deleted from Auth but not Public)
+  DELETE FROM public.users WHERE email = NEW.email;
+  
   INSERT INTO public.users (id, email, display_name)
   VALUES (
     NEW.id,
@@ -162,7 +166,10 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Revoke direct execution rights from PUBLIC to prevent HTTP RPC abuse
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM public;
 
 -- Trigger on Supabase auth.users
 CREATE TRIGGER on_auth_user_created
@@ -179,7 +186,18 @@ BEGIN
   WHERE id = NEW.id;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Revoke direct execution rights from PUBLIC to prevent HTTP RPC abuse
+REVOKE EXECUTE ON FUNCTION public.increment_invite_usage() FROM public;
+
+-- Disable pg_graphql exposure to avoid exposing database schema to anonymous or general users
+COMMENT ON TABLE public.users IS '@graphql(schema: "disabled")';
+COMMENT ON TABLE public.devices IS '@graphql(schema: "disabled")';
+COMMENT ON TABLE public.invites IS '@graphql(schema: "disabled")';
+COMMENT ON TABLE public.friendships IS '@graphql(schema: "disabled")';
+COMMENT ON TABLE public.relay_allocations IS '@graphql(schema: "disabled")';
+COMMENT ON TABLE public.audit_events IS '@graphql(schema: "disabled")';
 
 -- ============================================
 -- CLEANUP OLD DATA (run periodically)

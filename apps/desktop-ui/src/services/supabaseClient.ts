@@ -158,6 +158,38 @@ export async function registerDevice(deviceName: string, devicePublicKey: string
   return data;
 }
 
+export async function ensureDeviceRegistered(deviceId: string, deviceName: string) {
+  assertSupabaseConfigured();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: existingDevice } = await supabase
+    .from('devices')
+    .select('id')
+    .eq('id', deviceId)
+    .maybeSingle();
+
+  if (existingDevice) {
+    return existingDevice;
+  }
+
+  const { data, error } = await supabase
+    .from('devices')
+    .insert({
+      id: deviceId,
+      user_id: user.id,
+      device_name: deviceName,
+      device_public_key: 'local-dev-key',
+      platform: 'windows',
+      app_version: '0.1.0',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getDevices() {
   assertSupabaseConfigured();
   const { data, error } = await supabase
@@ -238,7 +270,18 @@ export async function listFriends() {
   if (error) throw error;
 
   return (data || []).map((f: any) => {
-    const friend = f.requester_user_id === user.id ? f.users1 : f.users2;
+    let friend = f.requester_user_id === user.id 
+      ? (f.users2 || f['users!addressee_user_id']) 
+      : (f.users1 || f['users!requester_user_id']);
+
+    if (!friend && f.users) {
+      friend = f.users;
+    }
+
+    if (Array.isArray(friend)) {
+      friend = friend[0];
+    }
+
     return {
       id: f.id,
       friend_id: friend?.id,

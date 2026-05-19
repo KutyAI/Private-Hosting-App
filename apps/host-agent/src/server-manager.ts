@@ -559,7 +559,22 @@ enable-command-block=false
 
   private getServerJar(serverDir: string, type: string, version: string): string {
     if (type === 'paper') {
-      return path.join(serverDir, `paper-${version}.jar`);
+      const defaultPath = path.join(serverDir, `paper-${version}.jar`);
+      if (fs.existsSync(defaultPath)) {
+        return defaultPath;
+      }
+      try {
+        if (fs.existsSync(serverDir)) {
+          const files = fs.readdirSync(serverDir);
+          const match = files.find(f => f.startsWith(`paper-${version}-`) && f.endsWith('.jar'));
+          if (match) {
+            return path.join(serverDir, match);
+          }
+        }
+      } catch (e) {
+        // ignore read errors
+      }
+      return defaultPath;
     }
     return path.join(serverDir, `server.jar`);
   }
@@ -602,7 +617,7 @@ enable-command-block=false
       const jarName = `paper-${version}-${latestBuild.build}.jar`;
       
       const downloadUrl = `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${latestBuild.build}/downloads/${jarName}`;
-      const serverJarPath = path.join(serverDir, jarName);
+      const serverJarPath = path.join(serverDir, `paper-${version}.jar`);
       const response = await axios.get(downloadUrl, {
         responseType: 'arraybuffer',
       });

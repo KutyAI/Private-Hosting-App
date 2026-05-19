@@ -656,6 +656,42 @@ export class IPCServer {
           return { id: request.id, success: false, error: 'No active guest session' };
         }
 
+        case 'supabase.metrics.fetch': {
+          const params = request.params as any;
+          const projectRef = params.project_ref;
+          const serviceRoleKey = params.service_role_key;
+
+          if (!projectRef || !serviceRoleKey) {
+            return { id: request.id, success: false, error: 'Project reference and Service Role key are required' };
+          }
+
+          try {
+            const url = `https://${projectRef.trim()}.supabase.co/customer/v1/privileged/metrics`;
+            const auth = Buffer.from(`service_role:${serviceRoleKey.trim()}`).toString('base64');
+            
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Basic ${auth}`,
+                'Accept': 'text/plain',
+              },
+            });
+
+            if (!response.ok) {
+              return { 
+                id: request.id, 
+                success: false, 
+                error: `Supabase API returned error: ${response.status} ${response.statusText}` 
+              };
+            }
+
+            const rawMetrics = await response.text();
+            return { id: request.id, success: true, data: { raw: rawMetrics } };
+          } catch (err: any) {
+            return { id: request.id, success: false, error: err.message || 'Failed to fetch metrics from Supabase' };
+          }
+        }
+
         default:
           return {
             id: request.id,

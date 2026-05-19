@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Copy, Plus, Users, Check, X, Play, Square, Globe, Wifi, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
-import { createInvite, joinInvite, sendFriendRequest, listFriends } from '../../services/supabaseClient';
+import { createInvite, joinInvite, sendFriendRequest, listFriends, ensureDeviceRegistered } from '../../services/supabaseClient';
 import { useAppStore } from '../../stores/appStore';
 import { sendIPCCommand } from '../../services/ipcClient';
 
@@ -21,7 +21,7 @@ interface ActiveSession {
 
 export function Access() {
   const { isAuthenticated } = useAuthStore();
-  const { servers, selectedServer } = useAppStore();
+  const { servers, selectedServer, setSelectedServer } = useAppStore();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteExpiry, setInviteExpiry] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -75,7 +75,16 @@ export function Access() {
     try {
       let result;
       if (isAuthenticated) {
-        result = await createInvite('local-device', selectedServer, 10, 24);
+        const status = await sendIPCCommand<{ device_id: string; device_name: string }>('network.status', {});
+        const deviceId = status?.device_id;
+        const deviceName = status?.device_name || 'Local Device';
+        
+        if (!deviceId) {
+          throw new Error('Local Device ID could not be retrieved from the host agent.');
+        }
+
+        await ensureDeviceRegistered(deviceId, deviceName);
+        result = await createInvite(deviceId, selectedServer, 10, 24);
       } else {
         result = await sendIPCCommand<{ code: string; expires_at: string }>('network.invite.create', {});
       }
@@ -181,7 +190,19 @@ export function Access() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Access Control</h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-800 p-4 rounded-lg">
+        <h2 className="text-2xl font-bold">Access Control</h2>
+        <select
+          value={selectedServer || ''}
+          onChange={(e) => setSelectedServer(e.target.value || null)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white min-w-[250px] outline-none focus:border-emerald-500 transition-colors"
+        >
+          <option value="">Select a server...</option>
+          {servers.map(s => (
+            <option key={s.id} value={s.id}>{s.name} ({s.server_type})</option>
+          ))}
+        </select>
+      </div>
 
       {message && (
         <div className={`p-3 rounded-lg text-sm ${
@@ -239,7 +260,7 @@ export function Access() {
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm">Select a server from the Dashboard to start hosting.</p>
+            <p className="text-gray-400 text-sm">Please select a server from the dropdown above to start hosting.</p>
           )}
         </div>
 

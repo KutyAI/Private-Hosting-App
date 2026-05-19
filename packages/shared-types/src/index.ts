@@ -133,7 +133,9 @@ export type IPCCommand =
   | 'session.stop'
   | 'session.list'
   | 'guest.join'
-  | 'guest.leave';
+  | 'guest.leave'
+  | 'supabase.metrics.fetch';
+
 
 export interface IPCRequest {
   id: string;

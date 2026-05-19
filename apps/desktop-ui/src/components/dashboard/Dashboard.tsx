@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus, Sparkles, Zap } from 'lucide-react';
+import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus, Sparkles, Zap, Server, Database } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { connectIPC, sendIPCCommand, setConnectionStateHandler, disconnectIPC } from '../../services/ipcClient';
 import type { LocalServer, ServerMetrics, LogEntry } from '@mc-host/shared-types';
+import { SupabaseObservability } from './SupabaseObservability';
 
 export function Dashboard() {
   const { servers, selectedServer, setSelectedServer, metrics, setServers, updateMetrics, setConnected, isConnected, addLog } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [activeTab, setActiveTab] = useState<'servers' | 'telemetry'>('servers');
   const selectedServerRef = useRef(selectedServer);
   const isConnectedRef = useRef(isConnected);
 
@@ -130,13 +132,15 @@ export function Dashboard() {
             <Wifi className="w-4 h-4" />
             {isConnected ? 'Agent Connected' : 'Agent Disconnected'}
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Server
-          </button>
+          {activeTab === 'servers' && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Server
+            </button>
+          )}
         </div>
       </div>
 
@@ -147,89 +151,119 @@ export function Dashboard() {
         <StatCard icon={Activity} label="TPS" value={selectedMetrics?.tps ?? '--'} />
       </div>
 
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Servers ({servers.length})</h3>
-        {servers.length === 0 ? (
-          <div className="text-gray-400 text-center py-8">
-            <p className="mb-4">No servers yet.</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-            >
-              Create your first server
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {servers.map((server) => (
-              <div
-                key={server.id}
-                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                  selectedServer === server.id
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-gray-700 hover:border-gray-600'
-                }`}
-                onClick={() => setSelectedServer(server.id)}
+      {/* Sci-Fi Premium Glowing Tabs */}
+      <div className="flex border-b border-white/5 pb-px gap-1">
+        <button
+          onClick={() => setActiveTab('servers')}
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 text-xs font-bold tracking-wide uppercase transition-all duration-300 rounded-t-xl ${
+            activeTab === 'servers'
+              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5 shadow-[0_4px_20px_-10px_rgba(16,185,129,0.4)]'
+              : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
+          }`}
+        >
+          <Server className="w-3.5 h-3.5" />
+          Sunucu Yönetimi
+        </button>
+        <button
+          onClick={() => setActiveTab('telemetry')}
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 text-xs font-bold tracking-wide uppercase transition-all duration-300 rounded-t-xl ${
+            activeTab === 'telemetry'
+              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5 shadow-[0_4px_20px_-10px_rgba(16,185,129,0.4)]'
+              : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
+          }`}
+        >
+          <Database className="w-3.5 h-3.5" />
+          Veritabanı Sağlığı (Telemetry)
+        </button>
+      </div>
+
+      {activeTab === 'servers' ? (
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">Servers ({servers.length})</h3>
+          {servers.length === 0 ? (
+            <div className="text-gray-400 text-center py-8">
+              <p className="mb-4">No servers yet.</p>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">{server.name}</h4>
-                    <p className="text-sm text-gray-400">
-                      {server.server_type} {server.mc_version} • Port {server.port}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      server.status === 'running' ? 'bg-emerald-500/20 text-emerald-400' :
-                      server.status === 'starting' ? 'bg-yellow-500/20 text-yellow-400' :
-                      server.status === 'crashed' ? 'bg-red-500/20 text-red-400' :
-                      'bg-gray-600 text-gray-300'
-                    }`}>
-                      {server.status}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {server.status === 'running' && (
-                        <>
+                Create your first server
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {servers.map((server) => (
+                <div
+                  key={server.id}
+                  className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                    selectedServer === server.id
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : 'border-gray-700 hover:border-gray-600'
+                  }`}
+                  onClick={() => setSelectedServer(server.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">{server.name}</h4>
+                      <p className="text-sm text-gray-400">
+                        {server.server_type} {server.mc_version} • Port {server.port}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        server.status === 'running' ? 'bg-emerald-500/20 text-emerald-400' :
+                        server.status === 'starting' ? 'bg-yellow-500/20 text-yellow-400' :
+                        server.status === 'crashed' ? 'bg-red-500/20 text-red-400' :
+                        'bg-gray-600 text-gray-300'
+                      }`}>
+                        {server.status}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {server.status === 'running' && (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRestart(server.id); }}
+                              className="p-1.5 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+                              title="Restart"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleStop(server.id); }}
+                              className="p-1.5 rounded bg-red-600/20 hover:bg-red-600/30 text-red-400 transition-colors"
+                              title="Stop"
+                            >
+                              <Square className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {server.status === 'stopped' && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleRestart(server.id); }}
-                            className="p-1.5 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-                            title="Restart"
+                            onClick={(e) => { e.stopPropagation(); handleStart(server.id); }}
+                            className="p-1.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 transition-colors"
+                            title="Start"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <Play className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleStop(server.id); }}
-                            className="p-1.5 rounded bg-red-600/20 hover:bg-red-600/30 text-red-400 transition-colors"
-                            title="Stop"
-                          >
-                            <Square className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                      {server.status === 'stopped' && (
+                        )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleStart(server.id); }}
-                          className="p-1.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 transition-colors"
-                          title="Start"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(server.id); }}
+                          className="p-1.5 rounded bg-red-600/10 hover:bg-red-600/20 text-red-400 transition-colors"
+                          title="Delete"
                         >
-                          <Play className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(server.id); }}
-                        className="p-1.5 rounded bg-red-600/10 hover:bg-red-600/20 text-red-400 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <SupabaseObservability />
+      )}
 
       {showCreate && (
         <CreateServerModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadServers(); }} />
@@ -262,12 +296,59 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
   const [form, setForm] = useState({
     name: '',
     server_type: 'vanilla' as 'vanilla' | 'paper',
-    mc_version: '1.20.4',
+    mc_version: '',
     memory_min_mb: 1024,
     memory_max_mb: 2048,
     port: 25565,
   });
+  const [versions, setVersions] = useState<string[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchVersions() {
+      setLoadingVersions(true);
+      try {
+        if (form.server_type === 'vanilla') {
+          const res = await fetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
+          const data = await res.json();
+          if (active) {
+            const releases = data.versions
+              .filter((v: any) => v.type === 'release')
+              .map((v: any) => v.id);
+            setVersions(releases);
+            if (releases.length > 0) {
+              setForm(f => ({ ...f, mc_version: f.mc_version && releases.includes(f.mc_version) ? f.mc_version : releases[0] }));
+            }
+          }
+        } else if (form.server_type === 'paper') {
+          const res = await fetch('https://api.papermc.io/v2/projects/paper');
+          const data = await res.json();
+          if (active) {
+            const paperVersions = [...data.versions].reverse();
+            setVersions(paperVersions);
+            if (paperVersions.length > 0) {
+              setForm(f => ({ ...f, mc_version: f.mc_version && paperVersions.includes(f.mc_version) ? f.mc_version : paperVersions[0] }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch versions, using fallback:', err);
+        if (active) {
+          const fallback = ['1.20.4', '1.20.1', '1.19.4', '1.18.2', '1.16.5', '1.12.2'];
+          setVersions(fallback);
+          setForm(f => ({ ...f, mc_version: fallback.includes(f.mc_version) ? f.mc_version : '1.20.4' }));
+        }
+      } finally {
+        if (active) setLoadingVersions(false);
+      }
+    }
+    fetchVersions();
+    return () => {
+      active = false;
+    };
+  }, [form.server_type]);
 
   async function handleCreate() {
     if (!form.name.trim()) return;
@@ -339,12 +420,25 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Version</label>
-              <input
-                value={form.mc_version}
-                onChange={(e) => setForm({ ...form, mc_version: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-              />
+              <label className="block text-sm text-gray-400 mb-1">Version (Sürüm)</label>
+              {loadingVersions ? (
+                <div className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm flex items-center justify-between text-gray-400">
+                  <span>Sürümler alınıyor...</span>
+                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <select
+                  value={form.mc_version}
+                  onChange={(e) => setForm({ ...form, mc_version: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  {versions.map((v) => (
+                    <option key={v} value={v} className="bg-gray-850 text-white">
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Port</label>
