@@ -27,6 +27,8 @@
 * **💾 Automatic Backup Engine:** Highly configurable local ZIP scheduler. Auto-creates atomic system checkpoints at user-defined intervals and supports single-click point-in-time state restoration.
 * **🌐 Device-Whitelisted Security:** Fully integrated `PolicyEnforcer` whitelists specific guest device IDs at the bridge layer, blocking arbitrary TCP clients from accessing private servers.
 * **🇹🇷 Locale-Aware Safety:** Explicit custom String conversion methods designed to bypass complex case-folding bugs under Turkish OS locale settings (avoiding `i`/`I` character mapping failures).
+* **🔍 Intelligent System Environment Checker:** Automated local Java JRE, Cloudflare tunnel CLI, and multi-launcher (Official, TLauncher, Legacy Launcher) discovery with directory scanning and version detection.
+* **📚 Glassmorphic Turkish Knowledge Base:** Interactive, beautifully structured in-app guides for zero-config server configuration, CurseForge & modpack installation, PaperMC optimizations, and TLauncher online-mode connection workarounds.
 * **📦 Native Bundler Pipeline:** Automatic build script that packages Node.js host agents into self-contained native executable sidecars and embeds them inside a compressed NSIS Windows installer.
 
 ---
@@ -84,6 +86,24 @@ The platform is managed as an NPM monorepo workspace for clean package separatio
 ├── supabase/             # Database triggers, presence sync schemas, and migration scripts
 └── scripts/              # Automated build pipelines, performance benchmarks, and end-to-end smoke test scripts
 ```
+
+---
+
+## 🔍 Intelligent System Environment Checker & Knowledge Base
+
+To ensure maximum plug-and-play ease for non-technical users, MC Hosting features an advanced real-time environment checker and an interactive Turkish gaming knowledge base integrated natively inside the UI:
+
+### 1. Real-Time Environment Checker
+* **Java JRE Diagnostics:** Scans local paths and executes safe version queries to detect if **Java 17+** is active (crucial for Minecraft server `.jar` runtimes). If missing, it offers an instant download link to Adoptium.
+* **Cloudflare CLI Detection:** Verifies if the optional `cloudflared` CLI binary is installed on the user's environment for HTTP/TCP tunnel fallback routing.
+* **Multi-Launcher Scanning:** Automatically scans dynamic `%APPDATA%` and `%USERPROFILE%` pathways to discover local game clients, supporting **Official Minecraft**, **TLauncher**, and **Legacy Launcher**.
+* **Local Version Inventory:** Performs depth-scans of the local `.minecraft/versions` subfolders and profiles up to 15 installed client versions directly onto the dashboard.
+
+### 2. High-Fidelity Interactive Turkish Guides
+* **🚀 One-Click Setup Guide:** Step-by-step walkthrough detailing how to boot a local server instance, allocate memory boundaries, and broadcast dynamic P2P Invite Codes.
+* **📦 CurseForge & Modpacks Integration:** In-depth blueprints outlining server/client directory alignment, Forge/Fabric JAR configuration, and how to successfully synchronize local `mods` and `config` structures.
+* **⚡ PaperMC Optimization Engine:** Architectural optimization tips focusing on `view-distance` adjustments in `paper-global.yml` and `spigot.yml` to dramatically stabilize TPS at a perfect `20.0`.
+* **🛡️ TLauncher Connection Fix:** Detailed instructions for configuring `online-mode=false` under Server Settings to solve the notorious "Invalid session" error and enable offline TLauncher players to join via loopback proxy tunnels (`localhost:25566`).
 
 ---
 
