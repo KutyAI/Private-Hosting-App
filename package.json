@@ -1,0 +1,20 @@
+{
+  "name": "mc-hosting-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:ui": "npm run dev -w apps/desktop-ui",
+    "dev:agent": "npm run dev -w apps/host-agent",
+    "dev:api": "npm run dev -w apps/backend-api",
+    "dev": "concurrently \"npm run dev:agent\" \"npm run dev:ui\" \"npm run dev:api\"",
+    "build": "npm run build --workspaces",
+    "start": "npm run start -w apps/desktop-ui"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

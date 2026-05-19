@@ -1,0 +1,40 @@
+services:
+  backend-api:
+    build:
+      context: ../..
+      dockerfile: apps/backend-api/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - API_PORT=3001
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    volumes:
+      - api-data:/app/data
+
+  relay-service:
+    build:
+      context: ../..
+      dockerfile: apps/relay-service/Dockerfile
+    ports:
+      - "8443:8443"
+    environment:
+      - NODE_ENV=production
+      - RELAY_PORT=8443
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  api-data:
