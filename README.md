@@ -6,6 +6,13 @@
 
 <h3 align="center">Ultimate Standalone Monorepo for Instant Minecraft Server Hosting</h3>
 
+> [!CAUTION]
+> ### 🛡️ PROPRIETARY SOFTWARE & COPYRIGHT NOTICE
+> **This repository is 100% proprietary. All rights are reserved.**
+> - **UNAUTHORIZED COPYING, DUPLICATION, CLONING, PUBLIC FORKING, DISTRIBUTING, OR MODIFYING OF THE CODE IS STRICTLY PROHIBITED BY LAW.**
+> - Doing so violates the [LICENSE](file:///c:/Users/kuti/Desktop/private_hosting_mc/LICENSE) of this repository and will trigger immediate legal enforcement, including DMCA Takedown requests, loss of developer/API credentials, and statutory damages claims.
+> - For full legal terms, please read the official [LICENSE](file:///c:/Users/kuti/Desktop/private_hosting_mc/LICENSE) file in the root directory.
+
 <p align="center">
   A premium, high-performance Windows-based solution that allows users to deploy local Minecraft Java servers with <strong>zero-config port forwarding bypass</strong> (automated NAT traversal) and control them via a state-of-the-art glassmorphic desktop dashboard.
 </p>
@@ -123,44 +130,49 @@ To ensure maximum plug-and-play ease for non-technical users, MC Hosting feature
 
 ## 🚀 Installation & Setup
 
-### Prerequisites
+Choose the installation pathway that fits your use case. **Path A** is designed for regular users who want to host servers instantly. **Path B** is designed for developers or advanced users running from source.
+
+### 🌟 Path A: Quick End-User Install (Recommended)
+You do NOT need to clone the code, install Node.js, Rust, or use the terminal.
+1. Go to the **GitHub Releases** page on this repository.
+2. Download the latest compiled setup installer: `MC Hosting_0.1.0_x64-setup.exe`.
+3. Double-click the installer and follow the premium Windows NSIS Setup Wizard to install the application.
+4. Launch **MC Hosting** from your Desktop or Start Menu!
+
+---
+
+### 💻 Path B: Developer / Self-Hoster Setup
+If you want to run the platform locally or self-host the backend, follow these automated steps:
+
+#### 1. System Prerequisites
+Ensure the following are installed on your computer:
 * **Node.js:** v18.0.0 or later (Node 20+ strongly recommended)
-* **Rust & Cargo:** (Needed for compiling the native Tauri GUI application)
-* **Visual Studio C++ Build Tools:** (Required Windows compilation tooling)
-* **Java Runtime:** v17 or later (Installed locally to run the Minecraft Server JARs)
+* **Rust & Cargo:** (Only needed if compiling/packaging the native Tauri desktop app)
+* **Visual Studio C++ Build Tools:** (Required for Windows compilation)
+* **Java Runtime (JRE):** v17 or later (Required on the host running the Minecraft server)
 
-### 1. Repository Installation
-Clone the repository and install all dependencies for workspaces from the root folder:
-```bash
-npm install
-```
-
-### 2. Configure Environment Configurations
-Ensure your Supabase parameters are set. Create local environment configs in their respective packages:
-
-* In `apps/desktop-ui/.env`:
-  ```env
-  VITE_API_URL=http://localhost:3001
-  VITE_RELAY_URL=ws://localhost:8443
+#### 2. One-Click Setup & Dependencies
+We provide automated wizards to install dependencies and configure environment settings:
+* **On Windows (Double-Click):**
+  Simply run `setup.bat` in the root folder.
+* **On Linux/macOS (Terminal):**
+  Run the setup shell script:
+  ```bash
+  chmod +x setup.sh
+  ./setup.sh
   ```
-* In `apps/host-agent/.env`:
-  ```env
-  API_URL=http://localhost:3001
-  RELAY_URL=ws://localhost:8443
-  IPC_PORT=9876
-  ```
+* *The setup wizard will automatically check your Node.js version, run `npm install` for all workspace components, and create standard `.env` templates for the backend REST API, React frontend UI, and persistent Host Agent sidecar.*
 
-### 3. Launching in Development Mode
-You can spin up all workspaces concurrently with a single command from the monorepo root:
-```bash
-npm run dev
-```
-Alternatively, launch specific services individually using targeted workspace scripts:
-```bash
-npm run dev:ui       # Boots Vite Desktop UI Dev server (Port 3000)
-npm run dev:agent    # Boots Host Agent Sidecar daemon (Port 9876)
-npm run dev:api      # Boots Control Plane REST Server (Port 3001)
-```
+#### 3. One-Click Concurrent Bootstrapper
+Once the setup script finishes, you can start all services concurrently:
+* **On Windows (Double-Click):**
+  Simply run `start.bat` in the root folder.
+* **On Linux/macOS (Terminal):**
+  Run the startup script:
+  ```bash
+  ./start.sh
+  ```
+* *This launches the React Frontend dashboard, persistent Host Agent IPC daemon, and the Express database REST server concurrently with full hot-reloading enabled.*
 
 ---
 

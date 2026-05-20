@@ -1,0 +1,30 @@
+PROPRIETARY SOFTWARE LICENSE & EULA
+
+Copyright (c) 2026 MC Hosting Development Team. All Rights Reserved.
+
+NOTICE TO USER: PLEASE READ THIS CONTRACT CAREFULLY. BY USING, VIEWING, OR ACCESSING
+THE CODE OR COMPILED BINARIES, YOU ACCEPT ALL THE TERMS AND CONDITIONS OF THIS AGREEMENT.
+
+1. PROPRIETARY AND COPYRIGHT NOTICE
+This repository, including all source code, design elements, images, assets, and documentation (the "Software"), is proprietary and confidential property of the MC Hosting Development Team (the "Owner"). The Software is protected by copyright laws, international copyright treaties, and other intellectual property laws and treaties.
+
+2. RESTRICTION ON COPYING, DISTRIBUTING, AND FORKING
+You are strictly FORBIDDEN from performing any of the following actions without explicit, prior written permission from the Owner:
+   (a) Copying, duplicating, cloning, mirroring, or reproducing the source code or any part of the Software.
+   (b) Creating public forks or public copies of this repository on GitHub or any other hosting service.
+   (c) Distributing, publishing, leasing, selling, renting, licensing, or sublicensing the Software, its source code, or compiled builds to third parties.
+   (d) Modifying, adapting, translating, reverse engineering, decompiling, or disassembling the Software or creating derivative works based upon the Software.
+
+3. PERMITTED USE
+You are permitted to:
+   (a) View the public source code repository on GitHub solely for educational and personal review purposes.
+   (b) Download and run the pre-compiled, official setup installers (.exe) released directly by the Owner on their official GitHub repository for personal, non-commercial use.
+
+4. ENFORCEMENT & REMEDIES
+The Owner reserves all legal rights to protect their intellectual property. Any unauthorized reproduction, modification, distribution, or commercial exploitation of the Software will result in:
+   (a) Immediate submission of DMCA Takedown requests to GitHub or other hosting providers.
+   (b) Immediate termination of access to any companion API or Relay network services.
+   (c) Full legal action, including claims for statutory damages, injunctions, and legal fees under applicable copyright and intellectual property laws.
+
+5. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
