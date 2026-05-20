@@ -147,6 +147,9 @@ CREATE POLICY "friendships_insert" ON friendships
 CREATE POLICY "friendships_update" ON friendships
   FOR UPDATE USING (auth.uid() = requester_user_id OR auth.uid() = addressee_user_id);
 
+CREATE POLICY "friendships_delete_own_pending" ON friendships
+  FOR DELETE USING (auth.uid() = requester_user_id AND status = 'pending');
+
 -- ============================================
 -- FUNCTIONS
 -- ============================================

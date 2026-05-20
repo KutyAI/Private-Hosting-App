@@ -98,6 +98,16 @@ export async function listFriends() {
   return data;
 }
 
+export async function listSentFriendRequests() {
+  const { data } = await api.get('/friends/requests/sent');
+  return data;
+}
+
+export async function cancelFriendRequest(friendshipId: string) {
+  const { data } = await api.delete(`/friends/requests/${friendshipId}`);
+  return data;
+}
+
 export async function createInvite(serverId: string, maxUses?: number, expiresHours?: number) {
   const { data } = await api.post(`/friends/${serverId}/invites`, {
     max_uses: maxUses,

@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Copy, Plus, Users, Check, X, Play, Square, Globe, Wifi, Loader2 } from 'lucide-react';
+import { Copy, Plus, Users, Check, X, Play, Square, Globe, Wifi, Loader2, Clock } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
-import { createInvite, joinInvite, sendFriendRequest, listFriends, ensureDeviceRegistered } from '../../services/supabaseClient';
+import { createInvite, joinInvite, sendFriendRequest, listFriends, cancelFriendRequest, ensureDeviceRegistered } from '../../services/supabaseClient';
 import { useAppStore } from '../../stores/appStore';
 import { sendIPCCommand } from '../../services/ipcClient';
 
 interface Friend {
   id: string;
-  friend_id: string;
-  friend_email: string;
-  friend_name: string;
+  friend_id?: string;
+  friend_email?: string;
+  friend_name?: string;
   status: string;
+  created_at?: string;
+  direction?: 'sent' | 'received';
 }
 
 interface ActiveSession {
@@ -26,8 +28,10 @@ export function Access() {
   const [inviteExpiry, setInviteExpiry] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [sentRequests, setSentRequests] = useState<Friend[]>([]);
   const [friendEmail, setFriendEmail] = useState('');
   const [showAddFriend, setShowAddFriend] = useState(false);
+  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
@@ -43,7 +47,11 @@ export function Access() {
   async function loadFriends() {
     try {
       const list = await listFriends();
-      setFriends(list || []);
+      const friendships = list || [];
+      setFriends(friendships.filter((friend) => friend.status === 'accepted'));
+      setSentRequests(friendships.filter(
+        (friend) => friend.status === 'pending' && friend.direction === 'sent',
+      ));
     } catch {}
   }
 
@@ -149,11 +157,24 @@ export function Access() {
       setMessage('Friend request sent!');
       setFriendEmail('');
       setShowAddFriend(false);
-      loadFriends();
+      await loadFriends();
     } catch (err: any) {
       setMessage(err.response?.data?.error || err.message || 'Failed to send request');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCancelRequest(friendshipId: string) {
+    setCancellingRequestId(friendshipId);
+    try {
+      await cancelFriendRequest(friendshipId);
+      setMessage('Friend request cancelled.');
+      await loadFriends();
+    } catch (err: any) {
+      setMessage(err.response?.data?.error || err.message || 'Failed to cancel request');
+    } finally {
+      setCancellingRequestId(null);
     }
   }
 
@@ -432,9 +453,47 @@ export function Access() {
           </div>
         )}
 
+        {sentRequests.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" />
+              Sent Requests ({sentRequests.length})
+            </h4>
+            <div className="space-y-2">
+              {sentRequests.map((request) => (
+                <div key={request.id} className="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                  <div>
+                    <div className="font-medium">{request.friend_name || request.friend_email}</div>
+                    <div className="text-sm text-gray-400">{request.friend_email}</div>
+                    {request.created_at && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Sent {new Date(request.created_at).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleCancelRequest(request.id)}
+                    disabled={cancellingRequestId === request.id}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-red-600/20 hover:text-red-400 disabled:opacity-50 rounded-lg text-sm transition-colors flex items-center gap-1"
+                  >
+                    {cancellingRequestId === request.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <X className="w-3 h-3" />
+                    )}
+                    Cancel
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {friends.length === 0 ? (
           <div className="text-gray-400 text-center py-6">
-            No friends yet. Add friends by their email to easily invite them.
+            {sentRequests.length > 0
+              ? 'No accepted friends yet. Waiting for your sent requests to be accepted.'
+              : 'No friends yet. Add friends by their email to easily invite them.'}
           </div>
         ) : (
           <div className="space-y-2">

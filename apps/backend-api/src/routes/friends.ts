@@ -73,6 +73,38 @@ router.get('/list', authMiddleware, (req: Request, res: Response) => {
   res.json(friends);
 });
 
+router.get('/requests/sent', authMiddleware, (req: Request, res: Response) => {
+  const db: Database.Database = (req as any).db;
+  const user = (req as any).user as AuthPayload;
+
+  const requests = db.prepare(`
+    SELECT f.id, f.status, f.created_at,
+           u.id as friend_id, u.email as friend_email, u.display_name as friend_name
+    FROM friendships f
+    JOIN users u ON f.addressee_user_id = u.id
+    WHERE f.requester_user_id = ? AND f.status = 'pending'
+    ORDER BY f.created_at DESC
+  `).all(user.userId);
+
+  res.json(requests);
+});
+
+router.delete('/requests/:id', authMiddleware, (req: Request, res: Response) => {
+  const db: Database.Database = (req as any).db;
+  const user = (req as any).user as AuthPayload;
+  const { id } = req.params;
+
+  const result = db.prepare(
+    'DELETE FROM friendships WHERE id = ? AND requester_user_id = ? AND status = \'pending\''
+  ).run(id, user.userId);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'Friend request not found' });
+  }
+
+  res.json({ success: true });
+});
+
 router.post('/:serverId/invites', authMiddleware, (req: Request, res: Response) => {
   const db: Database.Database = (req as any).db;
   const user = (req as any).user as AuthPayload;

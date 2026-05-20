@@ -250,6 +250,36 @@ export async function acceptFriendRequest(friendshipId: string) {
   return data;
 }
 
+interface FriendshipRow {
+  id: string;
+  status: string;
+  created_at: string;
+  requester_user_id: string;
+  addressee_user_id: string;
+  users?: { id: string; email: string; display_name: string } | { id: string; email: string; display_name: string }[];
+  'users!requester_user_id'?: { id: string; email: string; display_name: string } | { id: string; email: string; display_name: string }[];
+  'users!addressee_user_id'?: { id: string; email: string; display_name: string } | { id: string; email: string; display_name: string }[];
+}
+
+function resolveFriendUser(
+  friendship: FriendshipRow,
+  currentUserId: string,
+): { id: string; email: string; display_name: string } | undefined {
+  let friend = friendship.requester_user_id === currentUserId
+    ? friendship['users!addressee_user_id']
+    : friendship['users!requester_user_id'];
+
+  if (!friend && friendship.users) {
+    friend = friendship.users;
+  }
+
+  if (Array.isArray(friend)) {
+    return friend[0];
+  }
+
+  return friend;
+}
+
 export async function listFriends() {
   assertSupabaseConfigured();
   const { data: { user } } = await supabase.auth.getUser();
@@ -260,6 +290,7 @@ export async function listFriends() {
     .select(`
       id,
       status,
+      created_at,
       requester_user_id,
       addressee_user_id,
       users!requester_user_id (id, email, display_name),
@@ -269,27 +300,45 @@ export async function listFriends() {
 
   if (error) throw error;
 
-  return (data || []).map((f: any) => {
-    let friend = f.requester_user_id === user.id 
-      ? (f.users2 || f['users!addressee_user_id']) 
-      : (f.users1 || f['users!requester_user_id']);
-
-    if (!friend && f.users) {
-      friend = f.users;
-    }
-
-    if (Array.isArray(friend)) {
-      friend = friend[0];
-    }
+  return (data as FriendshipRow[] || []).map((friendship) => {
+    const friend = resolveFriendUser(friendship, user.id);
 
     return {
-      id: f.id,
+      id: friendship.id,
       friend_id: friend?.id,
       friend_email: friend?.email,
       friend_name: friend?.display_name,
-      status: f.status,
+      status: friendship.status,
+      created_at: friendship.created_at,
+      direction: friendship.requester_user_id === user.id ? 'sent' as const : 'received' as const,
     };
   });
+}
+
+export async function listSentFriendRequests() {
+  const friendships = await listFriends();
+  return friendships.filter(
+    (friendship) => friendship.direction === 'sent' && friendship.status === 'pending',
+  );
+}
+
+export async function cancelFriendRequest(friendshipId: string) {
+  assertSupabaseConfigured();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('id', friendshipId)
+    .eq('requester_user_id', user.id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error('Friend request not found');
+  return data;
 }
 
 export async function createInvite(hostDeviceId: string, serverId: string, maxUses = 10, expiresHours = 24) {

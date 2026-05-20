@@ -123,6 +123,34 @@ describe('E2E: Full User Journey', () => {
       }, { 'Authorization': `Bearer ${authToken}` });
       expect([201, 400, 409]).toContain(res.status);
     });
+
+    it('should list sent pending friend requests', async () => {
+      const res = await httpRequest('/friends/requests/sent', 'GET', undefined, {
+        'Authorization': `Bearer ${authToken}`,
+      });
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('should cancel a sent friend request', async () => {
+      const sentRes = await httpRequest('/friends/requests/sent', 'GET', undefined, {
+        'Authorization': `Bearer ${authToken}`,
+      });
+      expect(sentRes.status).toBe(200);
+
+      if (sentRes.body.length === 0) {
+        return;
+      }
+
+      const cancelRes = await httpRequest(
+        `/friends/requests/${sentRes.body[0].id}`,
+        'DELETE',
+        undefined,
+        { 'Authorization': `Bearer ${authToken}` },
+      );
+      expect(cancelRes.status).toBe(200);
+      expect(cancelRes.body.success).toBe(true);
+    });
   });
 
   describe('Agent IPC', () => {

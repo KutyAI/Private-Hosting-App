@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Terminal, Settings, Users, Database, Activity, LogOut, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
+import appIcon from '../../../src-tauri/icons/128x128.png';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -26,8 +27,13 @@ export function Sidebar() {
     <aside className="fixed left-6 top-6 bottom-6 w-20 bg-gray-900/50 border border-white/10 backdrop-blur-2xl rounded-[32px] flex flex-col justify-between items-center py-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-40 hover:border-emerald-500/20 transition-all duration-300">
       {/* Premium Sci-Fi Glowing Header/Logo */}
       <div className="flex flex-col items-center gap-1 group">
-        <div className="w-11 h-11 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-2xl flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all duration-300">
-          <span className="text-white font-extrabold text-base tracking-wider font-sans select-none">MC</span>
+        <div className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all duration-300">
+          <img
+            src={appIcon}
+            alt="MC Hosting"
+            className="w-full h-full object-cover select-none"
+            draggable={false}
+          />
         </div>
         <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse mt-2" />
       </div>
