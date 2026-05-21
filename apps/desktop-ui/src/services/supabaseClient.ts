@@ -3,8 +3,28 @@ import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 const SUPABASE_PLACEHOLDER_URL = 'https://placeholder.supabase.co';
 const SUPABASE_PLACEHOLDER_KEY = 'placeholder-key';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '';
+const getSupabaseUrl = (): string => {
+  try {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('CUSTOM_SUPABASE_URL');
+      if (saved) return saved.trim();
+    }
+  } catch {}
+  return import.meta.env.VITE_SUPABASE_URL?.trim() || '';
+};
+
+const getSupabaseAnonKey = (): string => {
+  try {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('CUSTOM_SUPABASE_ANON_KEY');
+      if (saved) return saved.trim();
+    }
+  } catch {}
+  return import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '';
+};
+
+const supabaseUrl = getSupabaseUrl();
+const supabaseAnonKey = getSupabaseAnonKey();
 
 export const supabase: SupabaseClient = createClient(
   supabaseUrl || SUPABASE_PLACEHOLDER_URL,
@@ -29,12 +49,15 @@ function hasMessage(error: unknown): error is ErrorWithMessage {
 }
 
 export function getSupabaseConfigurationError(): string | null {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return 'Authentication is not configured for this desktop build. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to apps/desktop-ui/.env, then restart or rebuild the app.';
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
+
+  if (!url || !key) {
+    return 'Authentication is not configured for this desktop build. Please configure your Supabase URL and Anon Key in Settings.';
   }
 
-  if (supabaseUrl === SUPABASE_PLACEHOLDER_URL || supabaseAnonKey === SUPABASE_PLACEHOLDER_KEY) {
-    return 'Authentication is still using placeholder Supabase values. Update apps/desktop-ui/.env with your real VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then restart or rebuild the app.';
+  if (url === SUPABASE_PLACEHOLDER_URL || key === SUPABASE_PLACEHOLDER_KEY) {
+    return 'Authentication is still using placeholder Supabase values. Please update your Supabase URL and Anon Key in Settings.';
   }
 
   return null;
@@ -85,7 +108,7 @@ export function getReadableAuthError(error: unknown): string {
   }
 
   if (normalizedMessage.includes('invalid api key')) {
-    return 'Supabase rejected the anon key. Verify VITE_SUPABASE_ANON_KEY in apps/desktop-ui/.env and rebuild the app.';
+    return 'Supabase rejected the anon key. Verify your Supabase URL and Anon Key in Settings.';
   }
 
   return message || 'Authentication failed. Please try again.';
@@ -401,6 +424,18 @@ export async function updatePresence(deviceId: string, online: boolean) {
     .from('devices')
     .update({ last_online_at: new Date().toISOString() })
     .eq('id', deviceId);
+}
+
+export async function signInWithOAuth(provider: 'github' | 'google') {
+  assertSupabaseConfigured();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+    },
+  });
+  if (error) throw new Error(getReadableAuthError(error));
+  return data;
 }
 
 function generateInviteCode(): string {

@@ -7,6 +7,7 @@ import {
   signIn,
   signOut,
   signUp,
+  signInWithOAuth,
 } from '../services/supabaseClient';
 
 interface AuthUser {
@@ -22,6 +23,7 @@ interface AuthState {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  loginWithOAuth: (provider: 'github' | 'google') => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   registerDevice: (name: string, key: string) => Promise<void>;
@@ -130,6 +132,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   registerDevice: async (name, key) => {
     await registerDeviceApi(name, key);
+  },
+  loginWithOAuth: async (provider) => {
+    set({ isLoading: true, error: null });
+    try {
+      await signInWithOAuth(provider);
+    } catch (err) {
+      const message = getReadableAuthError(err);
+      set({ isLoading: false, isAuthenticated: false, error: message });
+      throw new Error(message);
+    }
   },
   clearError: () => {
     set({ error: null });
