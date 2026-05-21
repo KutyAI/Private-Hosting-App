@@ -1,6 +1,6 @@
 [package]
 name = "mc-hosting"
-version = "0.1.0"
+version = "0.2.0"
 description = "MC Hosting - Minecraft Server Manager"
 authors = ["MC Hosting Team"]
 license = "MIT"

@@ -36,7 +36,7 @@ export class TelemetryClient {
     this.endpoint = config.endpoint || 'https://telemetry.mchosting.local/collect';
     this.apiKey = config.apiKey || process.env.TELEMETRY_API_KEY || '';
     this.deviceId = config.deviceId || this.getDeviceId();
-    this.appVersion = config.appVersion || '0.1.0';
+    this.appVersion = config.appVersion || '0.2.0';
     this.enabled = config.enabled !== false;
     this.queue = [];
     this.flushInterval = config.flushInterval || 30000;

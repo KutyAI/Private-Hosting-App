@@ -136,9 +136,9 @@ Choose the installation pathway that fits your use case. **Path A** is designed 
 Regular players and hosts do NOT need to clone the repository, install Node.js/Rust, or configure any databases.
 1. Go to the **GitHub Releases** page on this repository.
 2. Download the latest compiled installer for your operating system:
-   * **Windows**: `MC Hosting_0.1.0_x64-setup.exe`
-   * **macOS (Apple Silicon / M1 / M2 / M3 / M4)**: `MC Hosting_0.1.0_universal.dmg` (or `_aarch64.dmg`)
-   * **macOS (Intel)**: `MC Hosting_0.1.0_universal.dmg` (or `_x64.dmg`)
+   * **Windows**: `MC Hosting_0.2.0_x64-setup.exe`
+   * **macOS (Apple Silicon / M1 / M2 / M3 / M4)**: `MC Hosting_0.2.0_universal.dmg` (or `_aarch64.dmg`)
+   * **macOS (Intel)**: `MC Hosting_0.2.0_universal.dmg` (or `_x64.dmg`)
 3. Install the application:
    * **Windows**: Double-click the `.exe` and follow the premium NSIS Setup Wizard.
    * **macOS**: Open the `.dmg` and drag the **MC Hosting** app into your Applications folder.
@@ -204,7 +204,7 @@ The project features a highly specialized packaging pipeline that compiles Node.
   ```cmd
   scripts\build-installer.bat
   ```
-  * **Artifact Output:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.1.0_x64-setup.exe`
+  * **Artifact Output:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.2.0_x64-setup.exe`
 
 * **On macOS (Intel / Apple Silicon):**
   ```bash
@@ -214,7 +214,7 @@ The project features a highly specialized packaging pipeline that compiles Node.
   * **Universal App Build:** The script will automatically detect if both macOS targets (`aarch64` and `x86_64`) are installed in Rust via `rustup`. If available, it compiles a single **Universal App** that runs natively on both platforms. Otherwise, it compiles a highly-optimized native app for your current Mac processor.
   * **Artifact Output:**
     * Native app bundle: `apps/desktop-ui/src-tauri/target/release/bundle/macos/MC Hosting.app`
-    * Distributable installer: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.1.0_aarch64.dmg` (or `_x64.dmg` / `_universal.dmg` depending on build configuration)
+    * Distributable installer: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.2.0_aarch64.dmg` (or `_x64.dmg` / `_universal.dmg` depending on build configuration)
 
 ---
 

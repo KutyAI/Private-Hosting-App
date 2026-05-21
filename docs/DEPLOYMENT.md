@@ -16,7 +16,7 @@ Tauri creates a native Windows app with a tiny footprint using the system WebVie
 npm run tauri:build -w apps/desktop-ui
 ```
 
-**Output:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC.Hosting_0.1.0_x64-setup.exe`
+**Output:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC.Hosting_0.2.0_x64-setup.exe`
 
 **Install:** Run the `.exe` - it installs the app and registers the Windows service.
 
@@ -153,7 +153,7 @@ Run the Windows automated packaging batch script:
 # Execute in terminal or double-click from file manager
 scripts\build-installer.bat
 ```
-- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.1.0_x64-setup.exe`
+- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.2.0_x64-setup.exe`
 - **Installer Actions**: Installs the desktop GUI client, extracts the compiled Windows-native Node.js sidecar agent, and provisions required local proxy listeners.
 
 #### B. Building for macOS (Creates `.dmg` / `.app` Bundles)
@@ -166,7 +166,7 @@ chmod +x scripts/build-installer.sh
   - Apple Silicon (`aarch64-apple-darwin` for M1 / M2 / M3 / M4 processors)
   - Intel (`x86_64-apple-darwin` for legacy Intel processors)
 - If both architectures are installed in Rust (via `rustup target add aarch64-apple-darwin x86_64-apple-darwin`), the script automatically compiles a single **Universal macOS Bundle** (`.dmg` and `.app`) that runs natively on all macOS systems! Otherwise, it builds a native bundle for your current CPU.
-- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.1.0_universal.dmg` (or `_aarch64.dmg` / `_x64.dmg` depending on targets)
+- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.2.0_universal.dmg` (or `_aarch64.dmg` / `_x64.dmg` depending on targets)
 
 
 ### Step 5: User Flow

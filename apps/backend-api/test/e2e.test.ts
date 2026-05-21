@@ -102,7 +102,7 @@ describe('E2E: Full User Journey', () => {
         device_name: 'Test Device',
         device_public_key: 'test-key-123',
         platform: 'windows',
-        app_version: '0.1.0',
+        app_version: '0.2.0',
       }, { 'Authorization': `Bearer ${authToken}` });
       expect(res.status).toBe(201);
       expect(res.body.device_name).toBe('Test Device');

@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS devices (
   device_public_key text NOT NULL,
   device_name text NOT NULL DEFAULT '',
   platform text DEFAULT 'windows',
-  app_version text DEFAULT '0.1.0',
+  app_version text DEFAULT '0.2.0',
   public_ip text,
   public_port int DEFAULT 25565,
   nat_type text DEFAULT 'unknown',

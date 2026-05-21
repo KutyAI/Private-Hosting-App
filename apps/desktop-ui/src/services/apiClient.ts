@@ -87,7 +87,7 @@ export async function registerDevice(deviceName: string, deviceKey: string) {
     device_name: deviceName,
     device_public_key: deviceKey,
     platform: 'windows',
-    app_version: '0.1.0',
+    app_version: '0.2.0',
   });
   localStorage.setItem('device_id', data.id);
   return data;

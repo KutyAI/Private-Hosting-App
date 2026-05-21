@@ -172,7 +172,7 @@ export async function registerDevice(deviceName: string, devicePublicKey: string
       device_name: deviceName,
       device_public_key: devicePublicKey,
       platform: 'windows',
-      app_version: '0.1.0',
+      app_version: '0.2.0',
     })
     .select()
     .single();
@@ -204,7 +204,7 @@ export async function ensureDeviceRegistered(deviceId: string, deviceName: strin
       device_name: deviceName,
       device_public_key: 'local-dev-key',
       platform: 'windows',
-      app_version: '0.1.0',
+      app_version: '0.2.0',
     })
     .select()
     .single();

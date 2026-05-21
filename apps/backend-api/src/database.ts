@@ -28,7 +28,7 @@ export function getDatabase(): Database.Database {
       device_public_key TEXT,
       device_name TEXT NOT NULL,
       platform TEXT DEFAULT 'windows',
-      app_version TEXT DEFAULT '0.1.0',
+      app_version TEXT DEFAULT '0.2.0',
       registered_at TEXT DEFAULT (datetime('now')),
       last_online_at TEXT DEFAULT (datetime('now')),
       revoked_at TEXT
