@@ -28,7 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": ["nsis", "dmg", "app"],
     "externalBin": [
       "bin/host-agent"
     ],
@@ -37,8 +37,12 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico",
-      "icons/icon.png"
+      "icons/icon.png",
+      "icons/icon.icns"
     ],
+    "macOS": {
+      "minimumSystemVersion": "10.13"
+    },
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

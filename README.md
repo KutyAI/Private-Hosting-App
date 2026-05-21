@@ -14,7 +14,7 @@
 > - For full legal terms, please read the official [LICENSE](file:///c:/Users/kuti/Desktop/private_hosting_mc/LICENSE) file in the root directory.
 
 <p align="center">
-  A premium, high-performance Windows-based solution that allows users to deploy local Minecraft Java servers with <strong>zero-config port forwarding bypass</strong> (automated NAT traversal) and control them via a state-of-the-art glassmorphic desktop dashboard.
+  A premium, high-performance cross-platform (Windows & macOS) solution that allows users to deploy local Minecraft Java servers with <strong>zero-config port forwarding bypass</strong> (automated NAT traversal) and control them via a state-of-the-art glassmorphic desktop dashboard.
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@
 * **🇹🇷 Locale-Aware Safety:** Explicit custom String conversion methods designed to bypass complex case-folding bugs under Turkish OS locale settings (avoiding `i`/`I` character mapping failures).
 * **🔍 Intelligent System Environment Checker:** Automated local Java JRE, Cloudflare tunnel CLI, and multi-launcher (Official, TLauncher, Legacy Launcher) discovery with directory scanning and version detection.
 * **📚 Glassmorphic Turkish Knowledge Base:** Interactive, beautifully structured in-app guides for zero-config server configuration, CurseForge & modpack installation, PaperMC optimizations, and TLauncher online-mode connection workarounds.
-* **📦 Native Bundler Pipeline:** Automatic build script that packages Node.js host agents into self-contained native executable sidecars and embeds them inside a compressed NSIS Windows installer.
+* **📦 Native Bundler Pipeline:** Automatic build scripts that package Node.js host agents into self-contained native executable sidecars (Windows `x86_64`, macOS Apple Silicon `aarch64`, and macOS Intel `x86_64`) and embed them inside compressed NSIS installers, macOS `.app` bundles, or `.dmg` packages.
 
 ---
 
@@ -119,7 +119,7 @@ To ensure maximum plug-and-play ease for non-technical users, MC Hosting feature
 | Module | Technologies | Details & Purpose |
 | :--- | :--- | :--- |
 | **Desktop UI** | React 18, Vite, Tailwind CSS, Zustand | Premium responsive interface utilizing glassmorphic aesthetics and live telemetry dashboards. |
-| **Tauri Wrapper** | Rust, Tauri Shell Plugin, NSIS | Compiles the web view into a native Windows application wrapper, bundling sidecar binaries. |
+| **Tauri Wrapper** | Rust, Tauri Shell Plugin, NSIS, DMG | Compiles the web view into a native Windows or macOS application wrapper, bundling platform-specific sidecar binaries. |
 | **Host Agent** | Node.js 18, TypeScript, `ws`, `pkg` | Standalone sidecar that launches the MC server, hooks `stdout/stdin`, and creates proxy sockets. |
 | **Control Plane API** | Express.js, `better-sqlite3`, JWT | Manages user accounts, session authorization, rate limiting, and persistent device records. |
 | **Relay Service** | Node.js Stream Bridges, `ws` | Handles dual-socket pipe operations, linking host and player streams across complex firewalls. |
@@ -135,9 +135,14 @@ Choose the installation pathway that fits your use case. **Path A** is designed 
 ### 🌟 Path A: Quick End-User Install (Recommended)
 You do NOT need to clone the code, install Node.js, Rust, or use the terminal.
 1. Go to the **GitHub Releases** page on this repository.
-2. Download the latest compiled setup installer: `MC Hosting_0.1.0_x64-setup.exe`.
-3. Double-click the installer and follow the premium Windows NSIS Setup Wizard to install the application.
-4. Launch **MC Hosting** from your Desktop or Start Menu!
+2. Download the latest compiled installer for your operating system:
+   * **Windows:** `MC Hosting_0.1.0_x64-setup.exe`
+   * **macOS (Apple Silicon / M1 / M2 / M3):** `MC Hosting_0.1.0_aarch64.dmg`
+   * **macOS (Intel):** `MC Hosting_0.1.0_x64.dmg` (or universal installer)
+3. Install the application:
+   * **Windows:** Double-click the `.exe` and follow the premium NSIS Setup Wizard.
+   * **macOS:** Open the `.dmg` and drag the **MC Hosting** app into your Applications folder.
+4. Launch **MC Hosting**!
 
 ---
 
@@ -178,22 +183,35 @@ Once the setup script finishes, you can start all services concurrently:
 
 ## 📦 Compiling & Packaging the Application
 
-The project features a highly specialized packaging pipeline that compiles all Node.js services into binary executables and wraps them natively inside the Tauri installation bundle. This delivers a completely self-contained installer for the end-user.
+The project features a highly specialized packaging pipeline that compiles Node.js services into binary executables and wraps them natively inside the Tauri installation bundle, delivering a completely self-contained setup package.
 
 ### The Build Pipeline:
-1. Compiles the TypeScript code inside `packages/shared-types`, `apps/backend-api`, and `apps/host-agent`.
-2. Packages the Node.js Host Agent into a standalone binary (`host-agent-x86_64-pc-windows-msvc.exe`) using the `pkg` tool.
-3. Places the compiled binary into Tauri's native sidecars directory (`apps/desktop-ui/src-tauri/bin/`).
-4. Runs the Tauri compiler to create the production application bundle.
-5. Employs conditional subsystem compilation in Rust to ensure the Host Agent runs cleanly in the background without spawning noisy console windows.
+1. Compiles the TypeScript source code for `@mc-host/shared-types`, `apps/backend-api`, and `apps/host-agent`.
+2. Packages the Host Agent into a standalone executable using `pkg` for your target platform:
+   * **Windows x64:** `host-agent-x86_64-pc-windows-msvc.exe`
+   * **macOS Apple Silicon:** `host-agent-aarch64-apple-darwin`
+   * **macOS Intel:** `host-agent-x86_64-apple-darwin`
+3. Copies the compiled sidecar binaries directly into Tauri's source folder (`apps/desktop-ui/src-tauri/bin/`).
+4. Runs the Tauri native packaging command to bundle the static React frontend and native sidecars.
+5. Optimizes backgrounds: ensures the Host Agent runs silently without noisy terminal windows (via conditional subsystems in Rust and custom launchers).
 
-To execute the full production build pipeline, run the following script:
-```cmd
-scripts\build-installer.bat
-```
-### Compiled Artifact Output:
-* **Format:** Windows NSIS Setup Wizard (`.exe`)
-* **Path:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.1.0_x64-setup.exe`
+### Executing the Build Pipeline:
+
+* **On Windows:**
+  ```cmd
+  scripts\build-installer.bat
+  ```
+  * **Artifact Output:** `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.1.0_x64-setup.exe`
+
+* **On macOS (Intel / Apple Silicon):**
+  ```bash
+  chmod +x scripts/build-installer.sh
+  ./scripts/build-installer.sh
+  ```
+  * **Universal App Build:** The script will automatically detect if both macOS targets (`aarch64` and `x86_64`) are installed in Rust via `rustup`. If available, it compiles a single **Universal App** that runs natively on both platforms. Otherwise, it compiles a highly-optimized native app for your current Mac processor.
+  * **Artifact Output:**
+    * Native app bundle: `apps/desktop-ui/src-tauri/target/release/bundle/macos/MC Hosting.app`
+    * Distributable installer: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.1.0_aarch64.dmg` (or `_x64.dmg` / `_universal.dmg` depending on build configuration)
 
 ---
 

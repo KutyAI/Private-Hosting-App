@@ -9,6 +9,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "pkg": "npx -y pkg@5.8.1 . --targets node18-win-x64 --output bin/host-agent-x86_64-pc-windows-msvc.exe",
+    "pkg:macos-arm64": "npx -y pkg@5.8.1 . --targets node18-macos-arm64 --output bin/host-agent-aarch64-apple-darwin",
+    "pkg:macos-x64": "npx -y pkg@5.8.1 . --targets node18-macos-x64 --output bin/host-agent-x86_64-apple-darwin",
+    "pkg:macos": "npm run pkg:macos-arm64 && npm run pkg:macos-x64",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch"
   },
