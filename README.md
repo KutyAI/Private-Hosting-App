@@ -130,43 +130,46 @@ To ensure maximum plug-and-play ease for non-technical users, MC Hosting feature
 
 ## 🚀 Installation & Setup
 
-Choose the installation pathway that fits your use case. **Path A** is designed for regular users who want to host servers instantly. **Path B** is designed for developers or advanced users running from source.
+Choose the installation pathway that fits your use case. **Path A** is designed for regular users who want to host servers instantly with **zero configuration**. **Path B** is designed for developers or advanced self-hosters running from source.
 
 ### 🌟 Path A: Quick End-User Install (Recommended)
-You do NOT need to clone the code, install Node.js, Rust, or use the terminal.
+Regular players and hosts do NOT need to clone the repository, install Node.js/Rust, or configure any databases.
 1. Go to the **GitHub Releases** page on this repository.
 2. Download the latest compiled installer for your operating system:
-   * **Windows:** `MC Hosting_0.1.0_x64-setup.exe`
-   * **macOS (Apple Silicon / M1 / M2 / M3):** `MC Hosting_0.1.0_aarch64.dmg`
-   * **macOS (Intel):** `MC Hosting_0.1.0_x64.dmg` (or universal installer)
+   * **Windows**: `MC Hosting_0.1.0_x64-setup.exe`
+   * **macOS (Apple Silicon / M1 / M2 / M3 / M4)**: `MC Hosting_0.1.0_universal.dmg` (or `_aarch64.dmg`)
+   * **macOS (Intel)**: `MC Hosting_0.1.0_universal.dmg` (or `_x64.dmg`)
 3. Install the application:
-   * **Windows:** Double-click the `.exe` and follow the premium NSIS Setup Wizard.
-   * **macOS:** Open the `.dmg` and drag the **MC Hosting** app into your Applications folder.
+   * **Windows**: Double-click the `.exe` and follow the premium NSIS Setup Wizard.
+   * **macOS**: Open the `.dmg` and drag the **MC Hosting** app into your Applications folder.
 4. Launch **MC Hosting**!
+5. **Zero-Config Cloud Auth**: Register or log in instantly using your **Google** or **GitHub** account. The client comes pre-packaged to connect to our high-performance cloud presence system out-of-the-box.
 
 ---
 
 ### 💻 Path B: Developer / Self-Hoster Setup
-If you want to run the platform locally or self-host the backend, follow these automated steps:
+If you want to run the platform locally or host your own private control plane database and authentication network, follow these steps:
 
 #### 1. System Prerequisites
 Ensure the following are installed on your computer:
-* **Node.js:** v18.0.0 or later (Node 20+ strongly recommended)
-* **Rust & Cargo:** (Only needed if compiling/packaging the native Tauri desktop app)
-* **Visual Studio C++ Build Tools:** (Required for Windows compilation)
-* **Java Runtime (JRE):** v17 or later (Required on the host running the Minecraft server)
+* **Node.js**: v18.0.0 or later (Node 20+ strongly recommended)
+* **Rust & Cargo**: (Only needed if compiling/packaging the native Tauri desktop app)
+* **Visual Studio C++ Build Tools**: (Required for Windows compilation)
+* **Java Runtime (JRE)**: v17 or later (Required on the host running the Minecraft server)
 
 #### 2. One-Click Setup & Dependencies
-We provide automated wizards to install dependencies and configure environment settings:
-* **On Windows (Double-Click):**
+We provide automated wizards to install dependencies and configure local environment settings:
+* **On Windows (Double-Click)**:
   Simply run `setup.bat` in the root folder.
-* **On Linux/macOS (Terminal):**
+* **On Linux/macOS (Terminal)**:
   Run the setup shell script:
   ```bash
   chmod +x setup.sh
   ./setup.sh
   ```
-* *The setup wizard will automatically check your Node.js version, run `npm install` for all workspace components, and create standard `.env` templates for the backend REST API, React frontend UI, and persistent Host Agent sidecar.*
+* *The setup wizard automatically checks your Node.js version, installs monorepo dependencies, and copies template `.env` configurations.*
+* **Setting up custom Auth & DB**: If you want to connect the app to your own private Supabase instance and register your own custom **Google/GitHub OAuth applications**, please follow our comprehensive [Supabase Setup Guide](file:///Users/kutay/Desktop/gh/Private-Hosting-App/docs/SUPABASE_SETUP.md).
+
 
 #### 3. One-Click Concurrent Bootstrapper
 Once the setup script finishes, you can start all services concurrently:

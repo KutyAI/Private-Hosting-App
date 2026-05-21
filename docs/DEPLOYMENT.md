@@ -117,8 +117,19 @@ pm2 save
 
 ### Step 3: Configure the Desktop App
 
+The desktop application is built with a dual-configuration architecture:
+1. **Zero-Config Consumer Presets (Pre-Baked)**: When compiling production binaries, environment variables starting with `VITE_` are statically compiled directly into the client's asset bundles. This creates a zero-setup out-of-the-box user experience.
+2. **Dynamic Runtime Overrides**: Self-hosters can override these defaults at runtime without compiling their own installer. They can do this inside the app's Settings drawer under the **App Connections** tab.
+
+For releasing a pre-configured client, configure the environment files prior to compilation:
+
 Create `.env` in `apps/desktop-ui/`:
 ```env
+# Cloud authentication, presence tracking, and OAuth provider host
+VITE_SUPABASE_URL=https://your-production-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-production-anon-key
+
+# Control Plane API & WebSocket Tunnel Relays
 VITE_API_URL=https://api.mchosting.local
 VITE_RELAY_URL=wss://relay.mchosting.local:8443
 ```
@@ -130,15 +141,33 @@ RELAY_URL=wss://relay.mchosting.local:8443
 IPC_PORT=9876
 ```
 
-### Step 4: Build and Distribute
+---
 
-```bash
-# Build the Windows installer
-npm run tauri:build -w apps/desktop-ui
+### Step 4: Compile and Package Installers
 
-# Output: apps/desktop-ui/src-tauri/target/release/bundle/nsis/
-# File: MC.Hosting_0.1.0_x64-setup.exe
+Use our automated build wizards to compile all services, package Node.js agent executable sidecars, and bundle the final native desktop installers.
+
+#### A. Building for Windows (Creates `.exe` Installer)
+Run the Windows automated packaging batch script:
+```cmd
+# Execute in terminal or double-click from file manager
+scripts\build-installer.bat
 ```
+- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/nsis/MC Hosting_0.1.0_x64-setup.exe`
+- **Installer Actions**: Installs the desktop GUI client, extracts the compiled Windows-native Node.js sidecar agent, and provisions required local proxy listeners.
+
+#### B. Building for macOS (Creates `.dmg` / `.app` Bundles)
+Run the macOS automated compilation shell script:
+```bash
+chmod +x scripts/build-installer.sh
+./scripts/build-installer.sh
+```
+- The build script automatically packages native agent sidecars for **both** macOS platforms:
+  - Apple Silicon (`aarch64-apple-darwin` for M1 / M2 / M3 / M4 processors)
+  - Intel (`x86_64-apple-darwin` for legacy Intel processors)
+- If both architectures are installed in Rust (via `rustup target add aarch64-apple-darwin x86_64-apple-darwin`), the script automatically compiles a single **Universal macOS Bundle** (`.dmg` and `.app`) that runs natively on all macOS systems! Otherwise, it builds a native bundle for your current CPU.
+- **Build Output**: `apps/desktop-ui/src-tauri/target/release/bundle/dmg/MC Hosting_0.1.0_universal.dmg` (or `_aarch64.dmg` / `_x64.dmg` depending on targets)
+
 
 ### Step 5: User Flow
 

@@ -63,14 +63,28 @@ if not exist "apps\host-agent\.env" (
 
 echo.
 echo =========================================================
-echo  🎉 Setup Completed Successfully!
+echo  🎉 Monorepo Setup Completed Successfully!
 echo =========================================================
 echo.
+echo  [Preserves: Zero-Config Client Preset]
+echo   The desktop UI has been provisioned with pre-baked default cloud credentials.
+echo   This enables instant out-of-the-box user registration and login.
+echo.
+echo  [🌐 Setting Up Custom Auth (Google / GitHub OAuth)]
+echo   To self-host the Supabase database or configure custom OAuth credentials,
+echo   please follow our step-by-step setup guide at:
+echo      ==^> docs\SUPABASE_SETUP.md
+echo.
+echo  [⚙️ Dynamic App Connections]
+echo   Advanced developers can dynamically override API URLs and keys directly
+echo   inside the desktop app's "App Connections" Settings tab at runtime.
+echo.
+echo ---------------------------------------------------------
 echo You are now ready to run the MC Hosting development suite.
 echo.
 echo Simply double-click:
 echo    ==^> start.bat
-echo or run the command below:
+echo or run the command below in your terminal:
 echo    ==^> npm run dev
 echo.
 pause
