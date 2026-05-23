@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC Hosting Platform | Ultimate Minecraft Server Hosting</title>
+    <meta name="description" content="A premium, high-performance cross-platform solution for instant Minecraft Java server hosting with zero-config port forwarding bypass.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <span class="logo-text">MC Hosting</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Özellikler</a></li>
+                <li><a href="#architecture">Mimari</a></li>
+                <li><a href="#downloads">İndir</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="home">
+        <div class="container hero-container">
+            <div class="hero-content">
+                <div class="badge">🚀 v0.2.0 Yayında</div>
+                <h1 class="hero-title">Sıfır Ayar ile <span class="text-gradient">Minecraft</span> Sunucunuzu Kurun</h1>
+                <p class="hero-description">
+                    Port açma derdi olmadan (Zero-Config NAT Bypass), tek tıkla arkadaşlarınızla oynayabileceğiniz yüksek performanslı ve premium arayüzlü (Tauri/React) Minecraft Hosting Platformu.
+                </p>
+                <div class="hero-actions">
+                    <a href="#downloads" class="btn btn-primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Hemen İndir
+                    </a>
+                    <a href="https://github.com/KutyAI/Private-Hosting-App" class="btn btn-secondary" target="_blank">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                        GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image-wrapper">
+                <div class="glass-card mockup-card">
+                    <div class="mockup-header">
+                        <div class="dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div class="mockup-title">MC Hosting Dashboard</div>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-label">CPU Kullanımı</span>
+                                <span class="stat-value text-accent">12.4%</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">RAM (Bellek)</span>
+                                <span class="stat-value text-primary">4.2 GB</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Aktif Oyuncu</span>
+                                <span class="stat-value text-success">4 / 20</span>
+                            </div>
+                        </div>
+                        <div class="console-box">
+                            <p class="console-line text-info">[12:45:01 INFO]: Starting minecraft server version 1.20.4</p>
+                            <p class="console-line text-info">[12:45:03 INFO]: Loading properties</p>
+                            <p class="console-line text-success">[12:45:05 INFO]: Done (4.12s)! For help, type "help"</p>
+                            <p class="console-line text-warning">[12:45:10 WARN]: KutyAI joined the game</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Neden <span class="text-gradient">MC Hosting?</span></h2>
+            <p class="section-subtitle">Oyun deneyiminizi kesintisiz ve güvenli hale getirmek için geliştirilmiş üst düzey özellikler.</p>
+            
+            <div class="features-grid">
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-primary">⚡</div>
+                    <h3>Tek Tıkla Kurulum</h3>
+                    <p>Saniyeler içinde Vanilla veya PaperMC sunucu örneklerini indirin, yapılandırın ve çalıştırın.</p>
+                </div>
+                
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-accent">🛡️</div>
+                    <h3>Zero-Config NAT Bypass</h3>
+                    <p>Port açmaya gerek kalmadan tüm dünyadaki oyuncularla STUN, P2P tünelleme ve WebSocket röle ağı ile direkt bağlanın.</p>
+                </div>
+                
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-success">💎</div>
+                    <h3>Premium Arayüz</h3>
+                    <p>React, Vite ve Tauri ile geliştirilen, anlık RAM/CPU tüketimini gösteren akıcı glassmorphic masaüstü kontrol paneli.</p>
+                </div>
+                
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-warning">💾</div>
+                    <h3>Otomatik Yedekleme</h3>
+                    <p>Özelleştirilebilir zamanlanmış yedekleme sistemi ile sunucunuzun güvenliğini sağlayın ve dilediğiniz an geri yükleyin.</p>
+                </div>
+                
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-info">🌐</div>
+                    <h3>Cihaz Beyaz Listesi</h3>
+                    <p>Güçlü 'PolicyEnforcer' modülü ile yalnızca izin verilen davet koduna sahip cihazların ağa erişmesine olanak tanıyın.</p>
+                </div>
+                
+                <div class="feature-card glass-card reveal">
+                    <div class="feature-icon bg-danger">🇹🇷</div>
+                    <h3>Yerel Sistem Desteği</h3>
+                    <p>Türkçe karakter dönüştürme sorunlarını aşan, yerel Java JRE, Cloudflare tünellerini otomatik tespit eden akıllı sistem.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="downloads" id="downloads">
+        <div class="container">
+            <div class="download-container glass-card reveal">
+                <div class="download-content">
+                    <h2 class="section-title">Hemen Oynamaya <span class="text-gradient">Başlayın</span></h2>
+                    <p>Sıfır yapılandırma ile arkadaşlarınızla Minecraft sunucunuzu anında ayağa kaldırın. Kendi işletim sisteminize uygun sürümü indirin.</p>
+                </div>
+                
+                <div class="download-buttons">
+                    <a href="https://github.com/KutyAI/Private-Hosting-App/releases/latest/download/MC_Hosting_0.2.0_x64-setup.exe" class="dl-btn glass-btn">
+                        <div class="dl-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><line x1="22" y1="6" x2="2" y2="6"></line><line x1="22" y1="18" x2="2" y2="18"></line></svg>
+                        </div>
+                        <div class="dl-info">
+                            <span class="dl-title">Windows için İndir</span>
+                            <span class="dl-desc">Windows 10/11 (x64)</span>
+                        </div>
+                    </a>
+                    
+                    <a href="https://github.com/KutyAI/Private-Hosting-App/releases/latest/download/MC_Hosting_0.2.0_universal.dmg" class="dl-btn glass-btn">
+                        <div class="dl-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        </div>
+                        <div class="dl-info">
+                            <span class="dl-title">macOS için İndir</span>
+                            <span class="dl-desc">Apple Silicon / Intel</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-brand">
+                <div class="logo">
+                    <div class="logo-icon"></div>
+                    <span class="logo-text">MC Hosting</span>
+                </div>
+                <p>Güvenli, hızlı ve zahmetsiz Minecraft hosting çözümü.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Hızlı Bağlantılar</h4>
+                <ul>
+                    <li><a href="USER_GUIDE.md">Kullanım Rehberi</a></li>
+                    <li><a href="DEPLOYMENT.md">Kurulum</a></li>
+                    <li><a href="PRIVACY_POLICY.md">Gizlilik Politikası</a></li>
+                    <li><a href="TERMS_OF_SERVICE.md">Hizmet Şartları</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 MC Hosting Development Team. Tüm hakları saklıdır.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
