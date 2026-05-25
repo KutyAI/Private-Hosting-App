@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus, Sparkles, Zap, Server, Database } from 'lucide-react';
+import { Play, Square, RotateCcw, Users, HardDrive, Cpu, Wifi, Trash2, Plus, Sparkles, Zap, Server, Database, Search, Loader2 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { connectIPC, sendIPCCommand, setConnectionStateHandler, disconnectIPC } from '../../services/ipcClient';
-import type { LocalServer, ServerMetrics, LogEntry } from '@mc-host/shared-types';
+import type { LocalServer, LogEntry, ModrinthSearchResult, ModrinthVersionInfo, ServerMetrics } from '@mc-host/shared-types';
 import { SupabaseObservability } from './SupabaseObservability';
 
 export function Dashboard() {
@@ -295,19 +295,32 @@ function Activity({ className }: { className?: string }) {
 function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState({
     name: '',
-    server_type: 'vanilla' as 'vanilla' | 'paper',
+    server_type: 'vanilla' as 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge',
     mc_version: '',
     memory_min_mb: 1024,
     memory_max_mb: 2048,
     port: 25565,
+    auto_port: true,
   });
   const [versions, setVersions] = useState<string[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [modrinthQuery, setModrinthQuery] = useState('');
+  const [searchingModrinth, setSearchingModrinth] = useState(false);
+  const [modrinthResults, setModrinthResults] = useState<ModrinthSearchResult[]>([]);
+  const [selectedModrinthProject, setSelectedModrinthProject] = useState<ModrinthSearchResult | null>(null);
+  const [selectedModrinthVersion, setSelectedModrinthVersion] = useState<ModrinthVersionInfo | null>(null);
+  const [modrinthVersions, setModrinthVersions] = useState<ModrinthVersionInfo[]>([]);
+  const [loadingModrinthVersions, setLoadingModrinthVersions] = useState(false);
 
   useEffect(() => {
     let active = true;
     async function fetchVersions() {
+      if (form.server_type !== 'vanilla' && form.server_type !== 'paper') {
+        setLoadingVersions(false);
+        return;
+      }
+
       setLoadingVersions(true);
       try {
         if (form.server_type === 'vanilla') {
@@ -350,17 +363,73 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
     };
   }, [form.server_type]);
 
+  async function handleSearchModrinth() {
+    const query = modrinthQuery.trim();
+    if (!query) return;
+
+    setSearchingModrinth(true);
+    try {
+      const results = await sendIPCCommand<ModrinthSearchResult[]>('modrinth.search', { query, limit: 12 });
+      setModrinthResults(results || []);
+      setSelectedModrinthProject(null);
+      setSelectedModrinthVersion(null);
+      setModrinthVersions([]);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSearchingModrinth(false);
+    }
+  }
+
+  async function handleSelectModrinthProject(project: ModrinthSearchResult) {
+    setSelectedModrinthProject(project);
+    setLoadingModrinthVersions(true);
+    setSelectedModrinthVersion(null);
+    try {
+      const versions = await sendIPCCommand<ModrinthVersionInfo[]>('modrinth.project.versions', {
+        project_id: project.project_id,
+      });
+      setModrinthVersions(versions || []);
+      if ((versions || []).length > 0) {
+        handleSelectModrinthVersion((versions || [])[0]);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoadingModrinthVersions(false);
+    }
+  }
+
+  function handleSelectModrinthVersion(version: ModrinthVersionInfo) {
+    setSelectedModrinthVersion(version);
+    setVersions(version.game_versions.length > 0 ? version.game_versions : []);
+    setForm((prev) => ({
+      ...prev,
+      server_type: (version.loaders[0] || prev.server_type) as typeof prev.server_type,
+      mc_version: version.game_versions[0] || prev.mc_version,
+    }));
+  }
+
   async function handleCreate() {
     if (!form.name.trim()) return;
     setCreating(true);
     try {
+      const selectedLoader = selectedModrinthVersion?.loaders[0] || form.server_type;
       await sendIPCCommand('server.create', {
         name: form.name,
-        server_type: form.server_type,
+        server_type: selectedLoader,
         mc_version: form.mc_version,
         memory_min_mb: form.memory_min_mb,
         memory_max_mb: form.memory_max_mb,
-        port: form.port,
+        port: form.auto_port ? undefined : form.port,
+        auto_port: form.auto_port,
+        max_players: 20,
+        motd: form.name,
+        gamemode: 'survival',
+        difficulty: 'normal',
+        loader: selectedLoader,
+        modrinth_project_id: selectedModrinthProject?.project_id,
+        modrinth_version_id: selectedModrinthVersion?.id,
       });
       onCreated();
     } catch (err: any) {
@@ -390,7 +459,12 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setForm({ ...form, server_type: 'vanilla' })}
+                onClick={() => {
+                  setForm({ ...form, server_type: 'vanilla' });
+                  setSelectedModrinthProject(null);
+                  setSelectedModrinthVersion(null);
+                  setModrinthVersions([]);
+                }}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
                   form.server_type === 'vanilla'
                     ? 'bg-emerald-600/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/10'
@@ -404,7 +478,12 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
               <button
                 type="button"
-                onClick={() => setForm({ ...form, server_type: 'paper' })}
+                onClick={() => {
+                  setForm({ ...form, server_type: 'paper' });
+                  setSelectedModrinthProject(null);
+                  setSelectedModrinthVersion(null);
+                  setModrinthVersions([]);
+                }}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
                   form.server_type === 'paper'
                     ? 'bg-emerald-600/10 border-emerald-500 text-white shadow-lg shadow-emerald-500/10'
@@ -442,13 +521,103 @@ function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Port</label>
-              <input
-                type="number"
-                value={form.port}
-                onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-              />
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  value={form.port}
+                  disabled={form.auto_port}
+                  onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-60"
+                />
+                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.auto_port}
+                    onChange={(e) => setForm({ ...form, auto_port: e.target.checked })}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-emerald-500"
+                  />
+                  Auto-assign a free port
+                </label>
+              </div>
             </div>
+          </div>
+
+          <div className="border border-gray-700 rounded-xl p-4 space-y-4 bg-gray-900/40">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Modrinth Modpack</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={modrinthQuery}
+                  onChange={(e) => setModrinthQuery(e.target.value)}
+                  placeholder="Search modpacks..."
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={handleSearchModrinth}
+                  disabled={searchingModrinth || !modrinthQuery.trim()}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 rounded-lg text-sm flex items-center gap-2"
+                >
+                  {searchingModrinth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {modrinthResults.length > 0 && (
+              <div className="space-y-2 max-h-40 overflow-auto pr-1">
+                {modrinthResults.map((project) => (
+                  <button
+                    key={project.project_id}
+                    onClick={() => handleSelectModrinthProject(project)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedModrinthProject?.project_id === project.project_id
+                        ? 'border-emerald-500 bg-emerald-500/10'
+                        : 'border-gray-700 bg-gray-800/60 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="font-medium text-sm text-gray-100">{project.title}</div>
+                    <div className="text-xs text-gray-400 line-clamp-2">{project.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedModrinthProject && (
+              <div className="space-y-3 border-t border-gray-700 pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-200">{selectedModrinthProject.title}</div>
+                    <div className="text-xs text-gray-400">Select a pack version</div>
+                  </div>
+                  {loadingModrinthVersions && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+                </div>
+                {selectedModrinthVersion && (
+                  <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                    Selected: {selectedModrinthVersion.name} • {selectedModrinthVersion.game_versions[0] || 'unknown MC version'}
+                  </div>
+                )}
+                <div className="space-y-2 max-h-48 overflow-auto pr-1">
+                  {modrinthVersions.map((version) => (
+                    <button
+                      key={version.id}
+                      type="button"
+                      onClick={() => handleSelectModrinthVersion(version)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                        selectedModrinthVersion?.id === version.id
+                          ? 'border-emerald-500 bg-emerald-500/10'
+                          : 'border-gray-700 bg-gray-800/60 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="font-medium text-sm text-gray-100">{version.name}</div>
+                      <div className="text-xs text-gray-400">
+                        MC {version.game_versions[0] || 'unknown'} • {version.loaders.join(', ') || 'unknown loader'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-3">

@@ -19,6 +19,12 @@ import { ConnectionProxy } from './connection-proxy';
 import { IPCServer } from './ipc-server';
 import { PresenceManager } from './presence-manager';
 import { NatTraversal } from './nat-traversal';
+import { SettingsStore } from './settings-store';
+import { NotificationService } from './notification-service';
+import { JavaInstaller } from './java-installer';
+import { ModrinthInstaller } from './modrinth-installer';
+import { NoiseKeyStore } from './crypto/key-store';
+import { RustProxyClient } from './rust-proxy-client';
 
 const DATA_DIR = path.join(
   process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
@@ -38,9 +44,22 @@ async function main() {
   fs.mkdirSync(path.join(DATA_DIR, 'servers'), { recursive: true });
   fs.mkdirSync(path.join(DATA_DIR, 'backups'), { recursive: true });
   fs.mkdirSync(path.join(DATA_DIR, 'temp'), { recursive: true });
+  fs.mkdirSync(path.join(DATA_DIR, 'runtimes'), { recursive: true });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-  const serverManager = new ServerManager(DATA_DIR);
+  const settingsStore = new SettingsStore(path.join(DATA_DIR, 'config'));
+  const noiseKeyStore = new NoiseKeyStore(path.join(DATA_DIR, 'config'));
+  console.log(`[noise] Host public key: ${noiseKeyStore.getPublicKeyHex().slice(0, 16)}...`);
+
+  const rustProxyBin = RustProxyClient.resolveBinPath(DATA_DIR);
+  const rustProxy = new RustProxyClient(rustProxyBin);
+  if (settingsStore.getUseRustProxy() && rustProxy.isAvailable()) {
+    rustProxy.start();
+  }
+  const javaInstaller = new JavaInstaller(path.join(DATA_DIR, 'runtimes'));
+  const modrinthInstaller = new ModrinthInstaller(javaInstaller);
+  const notificationService = new NotificationService(settingsStore);
+  const serverManager = new ServerManager(DATA_DIR, settingsStore, javaInstaller, modrinthInstaller);
   const backupManager = new BackupManager(DATA_DIR);
   const backupScheduler = new BackupScheduler(DATA_DIR, backupManager, serverManager);
   const authManager = new AuthManager(path.join(DATA_DIR, 'config'));
@@ -55,7 +74,20 @@ async function main() {
 
   const connectionProxies: Map<string, ConnectionProxy> = new Map();
 
-  const ipcServer = new IPCServer(serverManager, backupManager, backupScheduler, policyEnforcer, authManager, connectionProxies, supabase);
+  const ipcServer = new IPCServer(
+    serverManager,
+    backupManager,
+    backupScheduler,
+    policyEnforcer,
+    authManager,
+    connectionProxies,
+    supabase,
+    settingsStore,
+    notificationService,
+    javaInstaller,
+    modrinthInstaller,
+    noiseKeyStore,
+  );
   const ipcPort = parseInt(process.env.IPC_PORT || '9876');
   ipcServer.start(ipcPort);
 
@@ -66,6 +98,33 @@ async function main() {
   });
 
   backupScheduler.startAll();
+
+  serverManager.on('server.started', (event) => {
+    notificationService.send(event).catch((error) => console.warn('[notifications] failed:', error));
+  });
+  serverManager.on('server.stopped', (event) => {
+    notificationService.send(event).catch((error) => console.warn('[notifications] failed:', error));
+  });
+  serverManager.on('server.crashed', (event) => {
+    notificationService.send(event).catch((error) => console.warn('[notifications] failed:', error));
+  });
+  serverManager.on('player.joined', (event) => {
+    notificationService.send(event).catch((error) => console.warn('[notifications] failed:', error));
+  });
+  serverManager.on('player.left', (event) => {
+    notificationService.send(event).catch((error) => console.warn('[notifications] failed:', error));
+  });
+  backupManager.on('completed', (record) => {
+    const serverName = serverManager.getServerConfig(record.server_id)?.name || record.server_id;
+    notificationService.send({
+      type: 'backup.completed',
+      server_id: record.server_id,
+      server_name: serverName,
+      size_bytes: record.size_bytes,
+      path: record.file_path,
+      source: record.source,
+    }).catch((error) => console.warn('[notifications] failed:', error));
+  });
 
   const candidates = await natTraversal.gatherCandidates();
   const srflx = candidates.filter((c: any) => c.type === 'srflx');
@@ -87,6 +146,7 @@ async function main() {
 
   process.on('SIGINT', () => {
     console.log('\nSIGINT received, shutting down gracefully...');
+    rustProxy.stop();
     backupScheduler.stopAll();
     for (const proxy of connectionProxies.values()) {
       proxy.stop();
@@ -98,6 +158,7 @@ async function main() {
 
   process.on('SIGTERM', () => {
     console.log('\nSIGTERM received, shutting down gracefully...');
+    rustProxy.stop();
     backupScheduler.stopAll();
     for (const proxy of connectionProxies.values()) {
       proxy.stop();

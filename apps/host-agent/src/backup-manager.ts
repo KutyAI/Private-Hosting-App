@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -6,10 +7,11 @@ import extractZip from 'extract-zip';
 import { BackupRecord } from '@mc-host/shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
-export class BackupManager {
+export class BackupManager extends EventEmitter {
   private dataDir: string;
 
   constructor(dataDir: string) {
+    super();
     this.dataDir = dataDir;
   }
 
@@ -46,6 +48,7 @@ export class BackupManager {
     };
 
     this.saveBackupRecord(serverId, record);
+    this.emit('completed', record);
     return record;
   }
 

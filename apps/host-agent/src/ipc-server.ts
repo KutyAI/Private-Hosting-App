@@ -1,9 +1,20 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import * as http from 'http';
 import * as os from 'os';
+import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { IPCRequest, IPCResponse, LogEntry } from '@mc-host/shared-types';
+import {
+  AppSettingsSnapshot,
+  IPCRequest,
+  IPCResponse,
+  LogEntry,
+  ModrinthInstallResult,
+  ModrinthSearchResult,
+  ModrinthVersionInfo,
+  NotificationSettings,
+  ServerCreateParams,
+} from '@mc-host/shared-types';
 import { ServerManager } from './server-manager';
 import { BackupManager } from './backup-manager';
 import { BackupScheduler } from './backup-scheduler';
@@ -11,6 +22,11 @@ import { PolicyEnforcer } from './policy-enforcer';
 import { AuthManager } from './auth-manager';
 import { NatTraversal } from './nat-traversal';
 import { getInviteByCode, incrementInviteUsage, getHostDeviceInfo } from './supabase-client';
+import { SettingsStore } from './settings-store';
+import { NotificationService } from './notification-service';
+import { JavaInstaller, resolveRequiredJavaVersion } from './java-installer';
+import { ModrinthInstaller } from './modrinth-installer';
+import { NoiseKeyStore } from './crypto/key-store';
 
 export class IPCServer {
   private wss: WebSocketServer | null = null;
@@ -28,7 +44,12 @@ export class IPCServer {
     private policyEnforcer: PolicyEnforcer,
     private authManager: AuthManager,
     private connectionProxies: Map<string, any> = new Map(),
-    private supabase: SupabaseClient | null = null
+    private supabase: SupabaseClient | null = null,
+    private settingsStore: SettingsStore | null = null,
+    private notificationService: NotificationService | null = null,
+    private javaInstaller: JavaInstaller | null = null,
+    private modrinthInstaller: ModrinthInstaller | null = null,
+    private noiseKeyStore: NoiseKeyStore | null = null,
   ) {}
 
   start(port: number = 9876): void {
@@ -133,17 +154,26 @@ export class IPCServer {
     try {
       switch (request.command) {
         case 'server.create': {
-          const params = request.params as any;
+          const params = request.params as Partial<ServerCreateParams> & { id?: string; auto_port?: boolean };
           const config = await this.serverManager.createServer({
             id: params.id || uuidv4(),
-            name: params.name,
-            server_type: params.server_type,
-            mc_version: params.mc_version,
+            name: params.name || 'New Server',
+            server_type: params.server_type || 'vanilla',
+            mc_version: params.mc_version || '1.20.4',
             world_path: 'world',
             memory_min_mb: params.memory_min_mb || 1024,
             memory_max_mb: params.memory_max_mb || 2048,
             auto_restart: params.auto_restart ?? true,
-            port: params.port || 25565,
+            port: params.port,
+            auto_port: params.auto_port,
+            max_players: params.max_players || 20,
+            motd: params.motd || 'A Minecraft Server',
+            gamemode: params.gamemode || 'survival',
+            difficulty: params.difficulty || 'normal',
+            java_path: params.java_path,
+            loader: params.loader,
+            modrinth_project_id: params.modrinth_project_id,
+            modrinth_version_id: params.modrinth_version_id,
           });
           return { id: request.id, success: true, data: config };
         }
@@ -285,8 +315,68 @@ export class IPCServer {
               online: this.authManager.isLoggedIn(),
               device_id: this.authManager.getDeviceId(),
               device_name: this.authManager.getDeviceName(),
+              noise_public_key: this.noiseKeyStore?.getPublicKeyHex() || null,
             }
           };
+        }
+
+        case 'settings.app.get': {
+          if (!this.settingsStore) {
+            return { id: request.id, success: false, error: 'Settings store not configured' };
+          }
+          return { id: request.id, success: true, data: this.settingsStore.getAppSettings() };
+        }
+
+        case 'settings.app.update': {
+          if (!this.settingsStore) {
+            return { id: request.id, success: false, error: 'Settings store not configured' };
+          }
+          const params = request.params as Partial<AppSettingsSnapshot>;
+          return { id: request.id, success: true, data: this.settingsStore.updateAppSettings(params) };
+        }
+
+        case 'settings.notifications.get': {
+          if (!this.settingsStore) {
+            return { id: request.id, success: false, error: 'Settings store not configured' };
+          }
+          return { id: request.id, success: true, data: this.settingsStore.getNotificationSettings() };
+        }
+
+        case 'settings.notifications.update': {
+          if (!this.settingsStore) {
+            return { id: request.id, success: false, error: 'Settings store not configured' };
+          }
+          const params = request.params as Partial<NotificationSettings>;
+          const current = this.settingsStore.getNotificationSettings();
+          const next: NotificationSettings = {
+            ...current,
+            ...params,
+            enabled_events: {
+              ...current.enabled_events,
+              ...(params.enabled_events || {}),
+            },
+          };
+          this.settingsStore.saveNotificationSettings(next);
+          return { id: request.id, success: true, data: next };
+        }
+
+        case 'settings.notifications.test': {
+          if (!this.notificationService) {
+            return { id: request.id, success: false, error: 'Notification service not configured' };
+          }
+          const ok = await this.notificationService.testWebhook();
+          return { id: request.id, success: ok, data: { success: ok } };
+        }
+
+        case 'system.java.ensure': {
+          if (!this.javaInstaller) {
+            return { id: request.id, success: false, error: 'Java installer not configured' };
+          }
+
+          const params = request.params as { feature_version?: number; minecraft_version?: string };
+          const featureVersion = params.feature_version || (params.minecraft_version ? resolveRequiredJavaVersion(params.minecraft_version) : 17);
+          const installation = await this.javaInstaller.ensureJre(featureVersion);
+          return { id: request.id, success: true, data: installation };
         }
 
         case 'system.environment.check': {
@@ -397,6 +487,73 @@ export class IPCServer {
               }
             }
           };
+        }
+
+        case 'modrinth.search': {
+          if (!this.modrinthInstaller) {
+            return { id: request.id, success: false, error: 'Modrinth installer not configured' };
+          }
+
+          const params = request.params as { query?: string; limit?: number };
+          const query = params.query?.trim();
+          if (!query) {
+            return { id: request.id, success: false, error: 'Search query is required' };
+          }
+
+          const results = await this.modrinthInstaller.searchModpacks(query, params.limit || 20);
+          return { id: request.id, success: true, data: results };
+        }
+
+        case 'modrinth.project.versions': {
+          if (!this.modrinthInstaller) {
+            return { id: request.id, success: false, error: 'Modrinth installer not configured' };
+          }
+
+          const params = request.params as { project_id?: string };
+          if (!params.project_id) {
+            return { id: request.id, success: false, error: 'Project ID is required' };
+          }
+
+          const versions = await this.modrinthInstaller.getProjectVersions(params.project_id);
+          return { id: request.id, success: true, data: versions };
+        }
+
+        case 'modrinth.version.get': {
+          if (!this.modrinthInstaller) {
+            return { id: request.id, success: false, error: 'Modrinth installer not configured' };
+          }
+
+          const params = request.params as { version_id?: string };
+          if (!params.version_id) {
+            return { id: request.id, success: false, error: 'Version ID is required' };
+          }
+
+          const version = await this.modrinthInstaller.getVersion(params.version_id);
+          return { id: request.id, success: true, data: version };
+        }
+
+        case 'modrinth.install': {
+          if (!this.modrinthInstaller) {
+            return { id: request.id, success: false, error: 'Modrinth installer not configured' };
+          }
+
+          const params = request.params as {
+            version_id?: string;
+            target_dir?: string;
+            java_path?: string;
+          };
+
+          if (!params.version_id || !params.target_dir) {
+            return { id: request.id, success: false, error: 'Version ID and target directory are required' };
+          }
+
+          const result = await this.modrinthInstaller.installModrinthPack(
+            params.version_id,
+            params.target_dir,
+            () => undefined,
+            params.java_path,
+          );
+          return { id: request.id, success: true, data: result };
         }
 
         case 'network.invite.create': {
@@ -530,12 +687,16 @@ export class IPCServer {
             return { id: request.id, success: false, error: 'Session already active' };
           }
 
+          const useE2EE = !!(this.noiseKeyStore && this.settingsStore?.getUseRustProxy());
+          const e2eeKeys = useE2EE && this.noiseKeyStore ? this.noiseKeyStore.getKeys() : undefined;
+
           const ConnectionProxy = require('./connection-proxy').ConnectionProxy;
           const proxy = new ConnectionProxy({
             serverId,
             minecraftHost: '127.0.0.1',
             minecraftPort: serverConfig.port || 25565,
             localProxyPort: params.local_proxy_port || (serverConfig.port || 25565) + 10000,
+            e2eeKeys,
           });
 
           proxy.start();
@@ -552,6 +713,8 @@ export class IPCServer {
               server_id: serverId,
               local_proxy_port: proxy.config.localProxyPort,
               minecraft_port: serverConfig.port,
+              e2ee_enabled: !!e2eeKeys,
+              noise_public_key: this.noiseKeyStore?.getPublicKeyHex() || null,
             },
           };
         }

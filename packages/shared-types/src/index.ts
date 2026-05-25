@@ -41,16 +41,135 @@ export interface Invite {
 export interface LocalServer {
   id: string;
   name: string;
-  server_type: 'vanilla' | 'paper';
+  server_type: 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge';
   mc_version: string;
   world_path: string;
   memory_min_mb: number;
   memory_max_mb: number;
+  max_players: number;
+  motd: string;
+  gamemode: 'survival' | 'creative' | 'adventure' | 'spectator';
+  difficulty: 'peaceful' | 'easy' | 'normal' | 'hard';
   auto_restart: boolean;
   status: 'stopped' | 'starting' | 'running' | 'crashed' | 'stopping';
   created_at: string;
   pid?: number;
   port: number;
+  java_path?: string;
+  loader?: 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge';
+  modrinth_project_id?: string;
+  modrinth_version_id?: string;
+  server_jar_path?: string;
+}
+
+export type NotificationEventType =
+  | 'server.started'
+  | 'server.stopped'
+  | 'server.crashed'
+  | 'player.joined'
+  | 'player.left'
+  | 'backup.completed';
+
+export interface NotificationSettings {
+  webhook_url: string;
+  enabled: boolean;
+  username?: string;
+  avatar_url?: string;
+  enabled_events: Record<NotificationEventType, boolean>;
+}
+
+export interface AppSettingsSnapshot {
+  maxConcurrentInstances: number;
+  useRustProxy: boolean;
+}
+
+export type NotificationEvent =
+  | {
+      type: 'server.started';
+      server_id: string;
+      server_name: string;
+      port: number;
+    }
+  | {
+      type: 'server.stopped';
+      server_id: string;
+      server_name: string;
+      exit_code: number | null;
+      signal: string | null;
+    }
+  | {
+      type: 'server.crashed';
+      server_id: string;
+      server_name: string;
+      exit_code: number | null;
+      signal: string | null;
+      reason: string;
+    }
+  | {
+      type: 'player.joined';
+      server_id: string;
+      server_name: string;
+      player: string;
+    }
+  | {
+      type: 'player.left';
+      server_id: string;
+      server_name: string;
+      player: string;
+    }
+  | {
+      type: 'backup.completed';
+      server_id: string;
+      server_name: string;
+      size_bytes: number;
+      path: string;
+      source: 'manual' | 'scheduled';
+    };
+
+export interface JavaInstallationInfo {
+  feature_version: number;
+  java_path: string;
+  install_dir: string;
+  platform: string;
+  arch: string;
+}
+
+export interface ModrinthSearchResult {
+  project_id: string;
+  slug: string;
+  title: string;
+  description: string;
+  icon_url?: string;
+  downloads: number;
+  follows: number;
+  versions: string[];
+  categories: string[];
+}
+
+export interface ModrinthVersionInfo {
+  id: string;
+  name: string;
+  version_number: string;
+  game_versions: string[];
+  loaders: string[];
+  primary_file_url: string;
+  primary_file_name: string;
+  primary_file_size: number;
+  project_id: string;
+  project_title: string;
+  project_slug: string;
+  project_icon_url?: string;
+}
+
+export interface ModrinthInstallResult {
+  project_id: string;
+  version_id: string;
+  title: string;
+  mc_version: string;
+  loader: 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge';
+  loader_version?: string;
+  server_jar_path?: string;
+  target_dir: string;
 }
 
 export interface BackupRecord {
@@ -120,9 +239,19 @@ export type IPCCommand =
   | 'network.status'
   | 'network.invite.create'
   | 'system.environment.check'
+  | 'system.java.ensure'
+  | 'settings.app.get'
+  | 'settings.app.update'
   | 'network.policy.update'
   | 'network.diagnostics'
   | 'network.test.connectivity'
+  | 'settings.notifications.get'
+  | 'settings.notifications.update'
+  | 'settings.notifications.test'
+  | 'modrinth.search'
+  | 'modrinth.project.versions'
+  | 'modrinth.version.get'
+  | 'modrinth.install'
   | 'policy.set'
   | 'policy.get'
   | 'policy.add.device'
@@ -152,15 +281,21 @@ export interface IPCResponse {
 
 export interface ServerCreateParams {
   name: string;
-  server_type: 'vanilla' | 'paper';
+  server_type: 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge';
   mc_version: string;
   memory_min_mb: number;
   memory_max_mb: number;
-  port: number;
+  port?: number;
+  auto_port?: boolean;
+  auto_restart?: boolean;
   max_players: number;
   motd: string;
   gamemode: 'survival' | 'creative' | 'adventure' | 'spectator';
   difficulty: 'peaceful' | 'easy' | 'normal' | 'hard';
+  java_path?: string;
+  loader?: 'vanilla' | 'paper' | 'fabric' | 'forge' | 'quilt' | 'neoforge';
+  modrinth_project_id?: string;
+  modrinth_version_id?: string;
 }
 
 export interface AuthTokens {

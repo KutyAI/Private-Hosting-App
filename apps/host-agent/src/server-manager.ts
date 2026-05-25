@@ -1,8 +1,13 @@
 import { spawn, ChildProcess } from 'child_process';
+import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { LocalServer, ServerMetrics, LogEntry } from '@mc-host/shared-types';
+import { LocalServer, ModrinthInstallResult, ServerMetrics, LogEntry } from '@mc-host/shared-types';
+import { SettingsStore } from './settings-store';
+import { JavaInstaller } from './java-installer';
+import { ModrinthInstaller } from './modrinth-installer';
+import { findFreePort } from './port-allocator';
 
 interface RunningServer {
   config: LocalServer;
@@ -12,17 +17,32 @@ interface RunningServer {
   lastCrashTime: number;
 }
 
-export class ServerManager {
+export class ServerManager extends EventEmitter {
   private servers: Map<string, RunningServer> = new Map();
   private logBuffer: Map<string, LogEntry[]> = new Map();
   private logListeners: Map<string, ((entry: LogEntry) => void)[]> = new Map();
   private dataDir: string;
+  private settingsStore: SettingsStore;
+  private javaInstaller: JavaInstaller;
+  private modrinthInstaller: ModrinthInstaller;
+  private stoppingServers: Set<string> = new Set();
 
-  constructor(dataDir: string) {
+  constructor(
+    dataDir: string,
+    settingsStore: SettingsStore,
+    javaInstaller: JavaInstaller,
+    modrinthInstaller: ModrinthInstaller,
+  ) {
+    super();
     this.dataDir = dataDir;
+    this.settingsStore = settingsStore;
+    this.javaInstaller = javaInstaller;
+    this.modrinthInstaller = modrinthInstaller;
   }
 
-  async createServer(config: Omit<LocalServer, 'status' | 'created_at'>): Promise<LocalServer> {
+  async createServer(
+    config: Omit<LocalServer, 'status' | 'created_at' | 'port'> & { port?: number; auto_port?: boolean },
+  ): Promise<LocalServer> {
     const serverDir = this.getServerDir(config.id);
     if (fs.existsSync(serverDir)) {
       throw new Error(`Server directory already exists: ${config.id}`);
@@ -34,10 +54,33 @@ export class ServerManager {
     fs.mkdirSync(path.join(serverDir, 'plugins'), { recursive: true });
     fs.mkdirSync(path.join(serverDir, 'mods'), { recursive: true });
 
+    const usedPorts = new Set(this.listServers().map((server) => server.port));
+    const preferredPort = config.port || 25565;
+    const resolvedPort = config.auto_port || !config.port || usedPorts.has(preferredPort)
+      ? await findFreePort(preferredPort, usedPorts)
+      : preferredPort;
+
+    let modrinthResult: ModrinthInstallResult | null = null;
+    if (config.modrinth_version_id) {
+      modrinthResult = await this.modrinthInstaller.installModrinthPack(
+        config.modrinth_version_id,
+        serverDir,
+        () => undefined,
+        config.java_path,
+      );
+    }
+
     const serverConfig: LocalServer = {
       ...config,
+      server_type: (modrinthResult?.loader || config.server_type) as LocalServer['server_type'],
+      port: resolvedPort,
       status: 'stopped',
       created_at: new Date().toISOString(),
+      loader: modrinthResult?.loader || config.loader || config.server_type,
+      mc_version: modrinthResult?.mc_version || config.mc_version,
+      modrinth_project_id: modrinthResult?.project_id || config.modrinth_project_id,
+      modrinth_version_id: modrinthResult?.version_id || config.modrinth_version_id,
+      server_jar_path: modrinthResult?.server_jar_path || config.server_jar_path,
     };
 
     this.saveServerConfig(serverConfig);
@@ -53,20 +96,33 @@ export class ServerManager {
       throw new Error('Server is already running');
     }
 
+    if (this.servers.size >= this.settingsStore.getMaxConcurrentInstances()) {
+      throw new Error(`Maximum concurrent instances reached (${this.settingsStore.getMaxConcurrentInstances()})`);
+    }
+
     const config = this.loadServerConfig(serverId);
     if (!config) {
       throw new Error(`Server not found: ${serverId}`);
     }
 
     const serverDir = this.getServerDir(serverId);
-    const javaPath = await this.findJava();
-    
+    let javaPath = config.java_path || await this.findJava();
+
+    if (!javaPath) {
+      const installation = await this.javaInstaller.ensureForMinecraftVersion(config.mc_version);
+      javaPath = installation.java_path;
+      config.java_path = installation.java_path;
+      this.saveServerConfig(config);
+    }
+
     if (!javaPath) {
       throw new Error('Java not found. Please install Java 17 or higher.');
     }
 
-    const serverJar = this.getServerJar(serverDir, config.server_type, config.mc_version);
-    
+    let serverJar = config.server_jar_path && fs.existsSync(config.server_jar_path)
+      ? config.server_jar_path
+      : this.getServerJar(serverDir, config.loader || config.server_type, config.mc_version);
+
     if (!fs.existsSync(serverJar)) {
       this.addLog(serverId, {
         timestamp: new Date().toISOString(),
@@ -75,19 +131,38 @@ export class ServerManager {
         source: 'agent',
       });
       try {
-        await this.downloadServerJar(serverDir, config.server_type, config.mc_version);
+        if (config.modrinth_version_id) {
+          const installResult = await this.modrinthInstaller.installModrinthPack(
+            config.modrinth_version_id,
+            serverDir,
+            () => undefined,
+            config.java_path,
+          );
+          serverJar = installResult.server_jar_path || serverJar;
+          config.server_type = installResult.loader as LocalServer['server_type'];
+          config.server_jar_path = installResult.server_jar_path || config.server_jar_path;
+          config.loader = installResult.loader;
+          config.mc_version = installResult.mc_version;
+          this.saveServerConfig(config);
+        } else {
+          await this.downloadServerJar(serverDir, config.server_type, config.mc_version);
+        }
       } catch (err: any) {
         throw new Error(`Failed to download server JAR: ${err.message}`);
       }
     }
 
+    const isScriptLauncher = serverJar.endsWith('.sh') || serverJar.endsWith('.bat');
+
     if (!fs.existsSync(serverJar)) {
       throw new Error(`Server JAR not found at ${serverJar}. Download failed.`);
     }
 
-    const jarStats = fs.statSync(serverJar);
-    if (jarStats.size < 1000) {
-      throw new Error(`Server JAR is corrupted (${jarStats.size} bytes). Delete it and try again.`);
+    if (!isScriptLauncher) {
+      const jarStats = fs.statSync(serverJar);
+      if (jarStats.size < 1000) {
+        throw new Error(`Server JAR is corrupted (${jarStats.size} bytes). Delete it and try again.`);
+      }
     }
 
     this.addLog(serverId, {
@@ -97,15 +172,26 @@ export class ServerManager {
       source: 'agent',
     });
 
-    const args = [
-      '-Xms' + config.memory_min_mb + 'M',
-      '-Xmx' + config.memory_max_mb + 'M',
-      '-jar',
-      serverJar,
-      'nogui'
-    ];
+    this.stoppingServers.delete(serverId);
+    if (isScriptLauncher) {
+      const jvmArgs = [`-Xms${config.memory_min_mb}M`, `-Xmx${config.memory_max_mb}M`].join('\n') + '\n';
+      fs.writeFileSync(path.join(serverDir, 'user_jvm_args.txt'), jvmArgs);
+    }
 
-    const child = spawn(javaPath, args, {
+    const command = isScriptLauncher
+      ? (process.platform === 'win32' ? 'cmd' : 'bash')
+      : javaPath;
+    const args = isScriptLauncher
+      ? (process.platform === 'win32' ? ['/c', serverJar] : [serverJar])
+      : [
+          '-Xms' + config.memory_min_mb + 'M',
+          '-Xmx' + config.memory_max_mb + 'M',
+          '-jar',
+          serverJar,
+          'nogui',
+        ];
+
+    const child = spawn(command, args, {
       cwd: serverDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env },
@@ -128,6 +214,12 @@ export class ServerManager {
     config.status = 'starting';
     this.saveServerConfig(config);
 
+    this.emit('server.started', {
+      server_id: serverId,
+      server_name: config.name,
+      port: config.port,
+    });
+
     child.stdout?.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n');
       for (const line of lines) {
@@ -139,6 +231,24 @@ export class ServerManager {
             source: 'server',
           };
           this.addLog(serverId, entry);
+
+          const playerJoined = line.match(/(?:\]:\s|\s)(.+?) joined the game/i);
+          if (playerJoined) {
+            this.emit('player.joined', {
+              server_id: serverId,
+              server_name: config.name,
+              player: playerJoined[1].trim(),
+            });
+          }
+
+          const playerLeft = line.match(/(?:\]:\s|\s)(.+?) left the game/i);
+          if (playerLeft) {
+            this.emit('player.left', {
+              server_id: serverId,
+              server_name: config.name,
+              player: playerLeft[1].trim(),
+            });
+          }
         }
       }
     });
@@ -188,6 +298,8 @@ export class ServerManager {
     if (!running) {
       throw new Error('Server is not running');
     }
+
+    this.stoppingServers.add(serverId);
 
     const config = this.loadServerConfig(serverId);
     if (config) {
@@ -385,6 +497,8 @@ export class ServerManager {
     if (!running) return;
 
     const config = this.loadServerConfig(serverId);
+    const manualStop = this.stoppingServers.has(serverId);
+    this.stoppingServers.delete(serverId);
     
     const now = Date.now();
     const uptime = now - running.startTime;
@@ -397,13 +511,19 @@ export class ServerManager {
     running.lastCrashTime = now;
 
     if (config) {
-      if (code === 0 || signal === 'SIGTERM') {
+      if (code === 0 || signal === 'SIGTERM' || manualStop) {
         config.status = 'stopped';
         this.addLog(serverId, {
           timestamp: new Date().toISOString(),
           level: 'info',
           message: 'Server stopped gracefully',
           source: 'agent',
+        });
+        this.emit('server.stopped', {
+          server_id: serverId,
+          server_name: config.name,
+          exit_code: code,
+          signal,
         });
       } else {
         const crashReason = this.classifyCrash(code, signal, serverId);
@@ -413,6 +533,13 @@ export class ServerManager {
           level: 'error',
           message: `Server crashed: ${crashReason} (code: ${code}, signal: ${signal})`,
           source: 'agent',
+        });
+        this.emit('server.crashed', {
+          server_id: serverId,
+          server_name: config.name,
+          exit_code: code,
+          signal,
+          reason: crashReason,
         });
 
         const isStartupFailure = uptime < 10000;
@@ -490,12 +617,28 @@ export class ServerManager {
 
   private writeServerProperties(config: LocalServer): void {
     const propertiesPath = path.join(this.getServerDir(config.id), 'server.properties');
+    const maxPlayers = config.max_players || 20;
+    const motd = config.motd || config.name || 'A Minecraft Server';
+    const gamemode = config.gamemode || 'survival';
+    const difficulty = config.difficulty || 'normal';
+    const gamemodeMap: Record<LocalServer['gamemode'], number> = {
+      survival: 0,
+      creative: 1,
+      adventure: 2,
+      spectator: 3,
+    };
+    const difficultyMap: Record<LocalServer['difficulty'], number> = {
+      peaceful: 0,
+      easy: 1,
+      normal: 2,
+      hard: 3,
+    };
     const content = `#Minecraft server properties
 server-port=${config.port}
-max-players=${config.port ? 20 : 20}
-motd=${config.name || 'A Minecraft Server'}
-gamemode=0
-difficulty=1
+max-players=${maxPlayers}
+motd=${motd}
+gamemode=${gamemodeMap[gamemode]}
+difficulty=${difficultyMap[difficulty]}
 level-name=world
 online-mode=true
 white-list=false
@@ -575,6 +718,18 @@ enable-command-block=false
         // ignore read errors
       }
       return defaultPath;
+    }
+    if (type === 'fabric') {
+      const fabricJar = path.join(serverDir, 'fabric-server-launch.jar');
+      if (fs.existsSync(fabricJar)) {
+        return fabricJar;
+      }
+    }
+    if (type === 'forge' || type === 'neoforge') {
+      const forgeJar = path.join(serverDir, `${type}.jar`);
+      if (fs.existsSync(forgeJar)) {
+        return forgeJar;
+      }
     }
     return path.join(serverDir, `server.jar`);
   }

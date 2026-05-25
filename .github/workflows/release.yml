@@ -63,6 +63,15 @@ jobs:
           chmod +x apps/desktop-ui/src-tauri/bin/host-agent-aarch64-apple-darwin
           chmod +x apps/desktop-ui/src-tauri/bin/host-agent-x86_64-apple-darwin
 
+      - name: Build Rust Relay Proxy (macOS universal)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          cd apps/host-agent-rs
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          cp target/aarch64-apple-darwin/release/mc-relay-proxy ../../apps/host-agent/bin/mc-relay-proxy-aarch64-apple-darwin
+          cp target/x86_64-apple-darwin/release/mc-relay-proxy ../../apps/host-agent/bin/mc-relay-proxy-x86_64-apple-darwin
+
       - name: Package Host Agent Sidecars (Windows)
         if: matrix.platform == 'windows-latest'
         shell: bash
@@ -70,6 +79,14 @@ jobs:
           mkdir -p apps/desktop-ui/src-tauri/bin
           npm run pkg -w apps/host-agent
           cp apps/host-agent/bin/host-agent-x86_64-pc-windows-msvc.exe apps/desktop-ui/src-tauri/bin/host-agent-x86_64-pc-windows-msvc.exe
+
+      - name: Build Rust Relay Proxy (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          cd apps/host-agent-rs
+          cargo build --release --target x86_64-pc-windows-msvc
+          cp target/x86_64-pc-windows-msvc/release/mc-relay-proxy.exe ../host-agent/bin/mc-relay-proxy-x86_64-pc-windows-msvc.exe
 
       - name: Build & Publish Tauri Desktop App
         uses: tauri-apps/tauri-action@v0

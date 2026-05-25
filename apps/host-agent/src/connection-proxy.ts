@@ -1,11 +1,14 @@
 import * as net from 'net';
 import { EventEmitter } from 'events';
+import { NoiseSession, NoiseKeys } from './crypto/noise-session';
+import { encryptFrames, decryptFrames } from './crypto/framed-stream';
 
 export interface ConnectionProxyConfig {
   serverId: string;
   minecraftHost: string;
   minecraftPort: number;
   localProxyPort: number;
+  e2eeKeys?: NoiseKeys;
 }
 
 export interface ActiveConnection {
@@ -62,6 +65,84 @@ export class ConnectionProxy extends EventEmitter {
   }
 
   private handleIncomingConnection(connectionId: string, localSocket: net.Socket): void {
+    if (this.config.e2eeKeys) {
+      this.handleE2EEConnection(connectionId, localSocket);
+    } else {
+      this.handlePlainConnection(connectionId, localSocket);
+    }
+  }
+
+  private async handleE2EEConnection(connectionId: string, localSocket: net.Socket): Promise<void> {
+    const headerBufs: Buffer[] = [];
+    let headerLen = 0;
+    const HANDSHAKE_MAX = 200;
+
+    const firstChunk = await new Promise<Buffer>((resolve, reject) => {
+      const onData = (data: Buffer) => {
+        headerBufs.push(data);
+        headerLen += data.length;
+        if (headerLen >= 65) {
+          localSocket.removeListener('data', onData);
+          localSocket.removeListener('error', reject);
+          resolve(Buffer.concat(headerBufs));
+        }
+        if (headerLen > HANDSHAKE_MAX) {
+          reject(new Error('Noise handshake message too large'));
+        }
+      };
+      localSocket.on('data', onData);
+      localSocket.once('error', reject);
+    });
+
+    try {
+      const { session, response } = await NoiseSession.hostHandshake(this.config.e2eeKeys!, firstChunk);
+      localSocket.write(response);
+
+      const encOut = encryptFrames(session);
+      const decIn = decryptFrames(session);
+
+      const conn: ActiveConnection = {
+        id: connectionId,
+        deviceId: '',
+        localSocket,
+        minecraftSocket: null,
+        bytesIn: 0,
+        bytesOut: 0,
+        connectedAt: Date.now(),
+      };
+      this.connections.set(connectionId, conn);
+      this.emit('connection', conn);
+
+      const mcSocket = net.createConnection({
+        host: this.config.minecraftHost,
+        port: this.config.minecraftPort,
+      });
+      conn.minecraftSocket = mcSocket;
+
+      decIn.on('data', (data: Buffer) => {
+        conn.bytesIn += data.length;
+        if (mcSocket.writable) mcSocket.write(data);
+      });
+      mcSocket.on('data', (data: Buffer) => {
+        conn.bytesOut += data.length;
+        encOut.write(data);
+      });
+      encOut.on('data', (data: Buffer) => {
+        if (localSocket.writable) localSocket.write(data);
+      });
+
+      localSocket.pipe(decIn);
+      localSocket.on('close', () => this.closeConnection(connectionId));
+      mcSocket.on('close', () => this.closeConnection(connectionId));
+      mcSocket.on('error', (err) => console.error(`[proxy:e2ee] mc error ${connectionId}:`, err.message));
+      localSocket.on('error', (err) => console.error(`[proxy:e2ee] local error ${connectionId}:`, err.message));
+    } catch (err) {
+      console.error(`[proxy:e2ee] Handshake failed for ${connectionId}:`, err);
+      localSocket.destroy();
+    }
+  }
+
+  private handlePlainConnection(connectionId: string, localSocket: net.Socket): void {
     const pendingData: Buffer[] = [];
 
     localSocket.on('data', (data) => {
